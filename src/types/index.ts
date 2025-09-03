@@ -34,6 +34,7 @@ export interface Product {
   updated_at: string;
   supplier_id: string | null;
   supplier_code: string | null;
+  status: 'active' | 'inactive';
   category?: Category;
   supplier?: Supplier;
 }

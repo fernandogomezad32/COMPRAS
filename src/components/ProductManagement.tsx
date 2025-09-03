@@ -70,20 +70,38 @@ export function ProductManagement() {
   };
 
   const handleDelete = async (productId: string) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer.')) {
-      return;
-    }
-
     try {
+      if (!window.confirm('¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer.')) {
+        return;
+      }
+
       await productService.delete(productId);
       await loadData();
-      // Mostrar mensaje de éxito
       alert('Producto eliminado exitosamente');
     } catch (error) {
       console.error('Error deleting product:', error);
-      // Mostrar mensaje de error específico
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar el producto';
-      alert(`Error al eliminar el producto: ${errorMessage}`);
+      
+      if (error instanceof Error && error.message === 'PRODUCT_HAS_SALES') {
+        const shouldDeactivate = window.confirm(
+          'No se puede eliminar el producto porque tiene ventas asociadas.\n\n' +
+          '¿Deseas desactivarlo en su lugar? Los productos inactivos no aparecerán en las ventas pero mantendrán su historial.'
+        );
+        
+        if (shouldDeactivate) {
+          try {
+            await productService.deactivate(productId);
+            await loadData();
+            alert('Producto desactivado exitosamente');
+          } catch (deactivateError) {
+            console.error('Error deactivating product:', deactivateError);
+            const errorMessage = deactivateError instanceof Error ? deactivateError.message : 'Error desconocido';
+            alert(`Error al desactivar el producto: ${errorMessage}`);
+          }
+        }
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar el producto';
+        alert(`Error al eliminar el producto: ${errorMessage}`);
+      }
     }
   };
 
@@ -217,6 +235,10 @@ export function ProductManagement() {
                       <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                         <AlertTriangle className="h-3 w-3" />
                         <span>Stock Bajo</span>
+                      </span>
+                    ) : product.status === 'inactive' ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Inactivo
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">

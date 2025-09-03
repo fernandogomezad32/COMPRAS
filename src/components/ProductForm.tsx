@@ -23,7 +23,8 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
     supplier_code: '',
     stock_quantity: '',
     min_stock: '5',
-    barcode: ''
+    barcode: '',
+    status: 'active'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +42,8 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
         supplier_code: product.supplier_code || '',
         stock_quantity: product.stock_quantity.toString(),
         min_stock: product.min_stock.toString(),
-        barcode: product.barcode || ''
+        barcode: product.barcode || '',
+        status: product.status || 'active'
       });
     }
   }, [product]);
@@ -71,7 +73,8 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
         supplier_code: formData.supplier_code || null,
         stock_quantity: parseInt(formData.stock_quantity),
         min_stock: parseInt(formData.min_stock),
-        barcode: formData.barcode || null
+        barcode: formData.barcode || null,
+        status: formData.status as 'active' | 'inactive'
       };
 
       if (product) {
@@ -277,6 +280,23 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Opcional"
               />
+            </div>
+
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+                Estado *
+              </label>
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="active">Activo</option>
+                <option value="inactive">Inactivo</option>
+              </select>
             </div>
           </div>
 

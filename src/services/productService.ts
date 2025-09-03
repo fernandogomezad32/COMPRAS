@@ -109,7 +109,7 @@ export const productService = {
     }
 
     if (saleItems && saleItems.length > 0) {
-      throw new Error('No se puede eliminar el producto porque tiene ventas asociadas. Considera desactivarlo en su lugar.');
+      throw new Error('PRODUCT_HAS_SALES');
     }
 
     // Proceder con la eliminación
@@ -124,6 +124,22 @@ export const productService = {
       }
       throw new Error(`Error al eliminar el producto: ${error.message}`);
     }
+  },
+
+  async deactivate(id: string): Promise<Product> {
+    const { data, error } = await supabase
+      .from('products')
+      .update({ status: 'inactive', updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select(`
+        *,
+        category:categories(*),
+        supplier:suppliers(*)
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
   async updateStock(id: string, quantity: number): Promise<Product> {

@@ -87,6 +87,7 @@ export type Database = {
           updated_at: string;
           supplier_id: string | null;
           supplier_code: string | null;
+          status: string;
         };
         Insert: {
           id?: string;
@@ -102,6 +103,7 @@ export type Database = {
           barcode?: string | null;
           created_at?: string;
           updated_at?: string;
+          status?: string;
         };
         Update: {
           id?: string;
@@ -117,6 +119,7 @@ export type Database = {
           barcode?: string | null;
           created_at?: string;
           updated_at?: string;
+          status?: string;
         };
       };
       sales: {
