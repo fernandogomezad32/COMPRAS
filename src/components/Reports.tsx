@@ -12,7 +12,7 @@ import {
   Trash2,
   Star,
   FileText,
-  Eye
+  FileText as FileTextIcon
 } from 'lucide-react';
 import { saleService } from '../services/saleService';
 import { productService } from '../services/productService';
@@ -21,7 +21,6 @@ import { reportService } from '../services/reportService';
 import type { Sale, Product, Customer, Report } from '../types';
 import { ReportForm } from './ReportForm';
 import { SaleForm } from './SaleForm';
-import { ReceiptViewer } from './ReceiptViewer';
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
@@ -37,7 +36,6 @@ export function Reports() {
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  const [viewingReceipt, setViewingReceipt] = useState<Sale | null>(null);
   const [activeTab, setActiveTab] = useState<'analytics' | 'saved'>('analytics');
 
   useEffect(() => {
@@ -813,9 +811,6 @@ export function Reports() {
                 <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -955,35 +950,6 @@ export function Reports() {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
                     ${sale.total.toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => handleEditSale(sale)}
-                        className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Editar venta"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSale(sale.id)}
-                        className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar venta"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    {sale.payment_receipt && sale.payment_receipt.length > 0 && (
-                      <button
-                        onClick={() => setViewingReceipt(sale)}
-                        className="text-purple-600 hover:text-purple-900 p-2 hover:bg-purple-50 rounded-lg transition-colors"
-                        title="Ver comprobante"
-                      >
-                        <FileText className="h-4 w-4" />
-                      </button>
-                    )}
-                  </td>
                 </tr>
                 );
               })}
@@ -1022,14 +988,6 @@ export function Reports() {
             setShowSaleForm(false);
             setEditingSale(null);
           }}
-        />
-      )}
-
-      {/* Modal del visor de comprobante */}
-      {viewingReceipt && viewingReceipt.payment_receipt && viewingReceipt.payment_receipt.length > 0 && (
-        <ReceiptViewer
-          receipt={viewingReceipt.payment_receipt[0]}
-          onClose={() => setViewingReceipt(null)}
         />
       )}
     </div>
