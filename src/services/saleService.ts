@@ -27,7 +27,19 @@ export const saleService = {
           *,
           product:products(*)
         ),
-        payment_receipt:payment_receipts(*)
+        payment_receipt:payment_receipts(
+          id,
+          sale_id,
+          receipt_number,
+          barcode,
+          receipt_type,
+          status,
+          issued_at,
+          voided_at,
+          void_reason,
+          created_at,
+          updated_at
+        )
       `)
       .order('created_at', { ascending: false });
 
@@ -60,7 +72,19 @@ export const saleService = {
           *,
           product:products(*)
         ),
-        payment_receipt:payment_receipts(*)
+        payment_receipt:payment_receipts(
+          id,
+          sale_id,
+          receipt_number,
+          barcode,
+          receipt_type,
+          status,
+          issued_at,
+          voided_at,
+          void_reason,
+          created_at,
+          updated_at
+        )
       `)
       .eq('id', id)
       .single();
