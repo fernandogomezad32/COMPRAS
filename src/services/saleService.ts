@@ -30,7 +30,7 @@ export const saleService = {
         payment_receipt:payment_receipts(
           id,
           sale_id,
-          receipt_number:receipt_number_pr,
+          receipt_number_pr:receipt_number,
           barcode,
           receipt_type,
           status,
@@ -75,7 +75,7 @@ export const saleService = {
         payment_receipt:payment_receipts(
           id,
           sale_id,
-          receipt_number:receipt_number_pr,
+          receipt_number_pr:receipt_number,
           barcode,
           receipt_type,
           status,
