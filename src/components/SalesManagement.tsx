@@ -31,7 +31,7 @@ export function SalesManagement() {
   });
   const [discountType, setDiscountType] = useState<'none' | 'amount' | 'percentage'>('none');
   const [discountValue, setDiscountValue] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'nequi' | 'daviplata' | 'bancolombia'>('cash');
   const [amountReceived, setAmountReceived] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -386,23 +386,33 @@ export function SalesManagement() {
             )}
 
             <div className="mt-4">
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="cash">Efectivo</option>
-                <option value="card">Tarjeta</option>
-                <option value="transfer">Transferencia</option>
-              </select>
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Método de Pago
+                </label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as any)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="cash">💵 Efectivo</option>
+                  <option value="card">💳 Tarjeta</option>
+                  <optgroup label="📱 Transferencias">
+                    <option value="nequi">NEQUI</option>
+                    <option value="daviplata">DAVIPLATA</option>
+                    <option value="bancolombia">BANCOLOMBIA</option>
+                    <option value="transfer">Otra Transferencia</option>
+                  </optgroup>
+                </select>
+              </div>
             </div>
 
             {/* Campos de pago para efectivo */}
-            {paymentMethod === 'cash' && (
+            {(paymentMethod === 'cash' || paymentMethod === 'nequi' || paymentMethod === 'daviplata' || paymentMethod === 'bancolombia') && (
               <div className="mt-4 space-y-4">
                 <div>
                   <label htmlFor="amountReceived" className="block text-sm font-medium text-gray-700 mb-2">
-                    Monto Recibido
+                    {paymentMethod === 'cash' ? 'Monto Recibido' : 'Monto Transferido'}
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
@@ -422,7 +432,9 @@ export function SalesManagement() {
                 {received > 0 && (
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-700">Cambio a devolver:</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        {paymentMethod === 'cash' ? 'Cambio a devolver:' : 'Diferencia:'}
+                      </span>
                       <span className={`text-lg font-bold ${
                         change > 0 ? 'text-orange-600' : 'text-green-600'
                       }`}>
@@ -510,7 +522,7 @@ export function SalesManagement() {
 
             <button
               onClick={processSale}
-              disabled={cart.length === 0 || loading || (paymentMethod === 'cash' && received < total)}
+              disabled={cart.length === 0 || loading || ((paymentMethod === 'cash' || paymentMethod === 'nequi' || paymentMethod === 'daviplata' || paymentMethod === 'bancolombia') && received < total)}
               className="w-full mt-6 bg-green-600 text-white py-4 px-4 rounded-lg font-medium hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
             >
               <CreditCard className="h-5 w-5" />

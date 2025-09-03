@@ -877,8 +877,19 @@ export function Reports() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
-                      {sale.payment_method}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+                      sale.payment_method === 'cash' ? 'bg-green-100 text-green-800' :
+                      sale.payment_method === 'card' ? 'bg-blue-100 text-blue-800' :
+                      ['nequi', 'daviplata', 'bancolombia', 'transfer'].includes(sale.payment_method) ? 'bg-purple-100 text-purple-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {sale.payment_method === 'nequi' ? '📱 NEQUI' :
+                       sale.payment_method === 'daviplata' ? '📱 DAVIPLATA' :
+                       sale.payment_method === 'bancolombia' ? '📱 BANCOLOMBIA' :
+                       sale.payment_method === 'transfer' ? '📱 Transferencia' :
+                       sale.payment_method === 'cash' ? '💵 Efectivo' :
+                       sale.payment_method === 'card' ? '💳 Tarjeta' :
+                       sale.payment_method}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

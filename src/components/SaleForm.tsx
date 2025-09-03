@@ -194,9 +194,14 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="cash">Efectivo</option>
-                  <option value="card">Tarjeta</option>
-                  <option value="transfer">Transferencia</option>
+                  <option value="cash">💵 Efectivo</option>
+                  <option value="card">💳 Tarjeta</option>
+                  <optgroup label="📱 Transferencias">
+                    <option value="nequi">NEQUI</option>
+                    <option value="daviplata">DAVIPLATA</option>
+                    <option value="bancolombia">BANCOLOMBIA</option>
+                    <option value="transfer">Otra Transferencia</option>
+                  </optgroup>
                 </select>
               </div>
             </div>

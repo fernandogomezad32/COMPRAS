@@ -50,7 +50,7 @@ export interface Sale {
   customer_name: string;
   customer_email: string;
   customer_id: string | null;
-  payment_method: string;
+  payment_method: 'cash' | 'card' | 'transfer' | 'nequi' | 'daviplata' | 'bancolombia';
   status: string;
   user_id: string | null;
   created_at: string;
