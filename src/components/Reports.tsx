@@ -11,7 +11,8 @@ import {
   Edit2,
   Trash2,
   Star,
-  FileText
+  FileText,
+  Eye
 } from 'lucide-react';
 import { saleService } from '../services/saleService';
 import { productService } from '../services/productService';
@@ -19,6 +20,7 @@ import { customerService } from '../services/customerService';
 import { reportService } from '../services/reportService';
 import type { Sale, Product, Customer, Report } from '../types';
 import { ReportForm } from './ReportForm';
+import { SaleForm } from './SaleForm';
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -30,7 +32,9 @@ export function Reports() {
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState('today');
   const [showForm, setShowForm] = useState(false);
+  const [showSaleForm, setShowSaleForm] = useState(false);
   const [editingReport, setEditingReport] = useState<Report | null>(null);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [activeTab, setActiveTab] = useState<'analytics' | 'saved'>('analytics');
 
   useEffect(() => {
@@ -61,6 +65,26 @@ export function Reports() {
     setShowForm(true);
   };
 
+  const handleEditSale = (sale: Sale) => {
+    setEditingSale(sale);
+    setShowSaleForm(true);
+  };
+
+  const handleDeleteSale = async (saleId: string) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar esta venta? Esta acción restaurará el stock de los productos.')) {
+      return;
+    }
+
+    try {
+      await saleService.delete(saleId);
+      await loadData();
+      alert('Venta eliminada exitosamente');
+    } catch (error: any) {
+      console.error('Error deleting sale:', error);
+      alert('Error al eliminar la venta: ' + (error.message || 'Error desconocido'));
+    }
+  };
+
   const handleDeleteReport = async (reportId: string) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar este reporte?')) {
       return;
@@ -87,6 +111,12 @@ export function Reports() {
   const handleFormSubmit = async () => {
     setShowForm(false);
     setEditingReport(null);
+    await loadData();
+  };
+
+  const handleSaleFormSubmit = async () => {
+    setShowSaleForm(false);
+    setEditingSale(null);
     await loadData();
   };
 
@@ -467,7 +497,12 @@ export function Reports() {
       {/* Ventas Recientes */}
       <div className="bg-white rounded-xl shadow-md">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Ventas Recientes</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Ventas Recientes</h2>
+            <span className="text-sm text-gray-500">
+              {getFilteredSales().length} ventas encontradas
+            </span>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -485,8 +520,14 @@ export function Reports() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Método de Pago
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Estado
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Acciones
                 </th>
               </tr>
             </thead>
@@ -524,8 +565,38 @@ export function Reports() {
                       {sale.payment_method}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      sale.status === 'completed' 
+                        ? 'bg-green-100 text-green-800'
+                        : sale.status === 'pending'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {sale.status === 'completed' ? 'Completada' : 
+                       sale.status === 'pending' ? 'Pendiente' : 'Cancelada'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
                     ${sale.total.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end space-x-2">
+                      <button
+                        onClick={() => handleEditSale(sale)}
+                        className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Editar venta"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSale(sale.id)}
+                        className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Eliminar venta"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -551,6 +622,18 @@ export function Reports() {
           onCancel={() => {
             setShowForm(false);
             setEditingReport(null);
+          }}
+        />
+      )}
+
+      {/* Modal del formulario de venta */}
+      {showSaleForm && (
+        <SaleForm
+          sale={editingSale}
+          onSubmit={handleSaleFormSubmit}
+          onCancel={() => {
+            setShowSaleForm(false);
+            setEditingSale(null);
           }}
         />
       )}

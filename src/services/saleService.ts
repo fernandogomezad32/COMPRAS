@@ -88,6 +88,62 @@ export const saleService = {
     return sale;
   },
 
+  async update(id: string, updates: Partial<Sale>): Promise<Sale> {
+    const { data, error } = await supabase
+      .from('sales')
+      .update(updates)
+      .eq('id', id)
+      .select(`
+        *,
+        customer:customers(*),
+        sale_items(
+          *,
+          product:products(*)
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async delete(id: string): Promise<void> {
+    // Primero eliminar los items de la venta (esto restaurará el stock automáticamente)
+    const { error: itemsError } = await supabase
+      .from('sale_items')
+      .delete()
+      .eq('sale_id', id);
+
+    if (itemsError) throw itemsError;
+
+    // Luego eliminar la venta
+    const { error: saleError } = await supabase
+      .from('sales')
+      .delete()
+      .eq('id', id);
+
+    if (saleError) throw saleError;
+  },
+
+  async updateStatus(id: string, status: string): Promise<Sale> {
+    const { data, error } = await supabase
+      .from('sales')
+      .update({ status })
+      .eq('id', id)
+      .select(`
+        *,
+        customer:customers(*),
+        sale_items(
+          *,
+          product:products(*)
+        )
+      `)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async getStats(): Promise<{
     totalSales: number;
     totalRevenue: number;
