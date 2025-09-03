@@ -88,6 +88,17 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
         }));
       }
     }
+
+    // Calcular cambio automáticamente cuando cambia el monto recibido
+    if (name === 'amount_received' && sale) {
+      const received = parseFloat(value) || 0;
+      const total = sale.total ?? 0;
+      const change = received > total ? received - total : 0;
+      setFormData(prev => ({
+        ...prev,
+        change_amount: change.toFixed(2)
+      }));
+    }
   };
 
   return (
@@ -229,11 +240,11 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
                   id="change_amount"
                   name="change_amount"
                   value={formData.change_amount}
-                  onChange={handleChange}
+                  readOnly
                   step="0.01"
                   min="0"
                   max="99999999.99"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
                 />
               </div>
             </div>
