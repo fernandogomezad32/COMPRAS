@@ -105,7 +105,7 @@ export interface Supplier {
 export interface PaymentReceipt {
   id: string;
   sale_id: string;
-  receipt_number: string;
+  receipt_number_pr: string;
   barcode: string;
   receipt_type: 'sale' | 'refund' | 'exchange' | 'credit_note';
   status: 'active' | 'cancelled' | 'voided';

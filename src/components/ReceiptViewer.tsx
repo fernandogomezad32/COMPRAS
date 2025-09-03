@@ -114,7 +114,7 @@ export function ReceiptViewer({ receipt, onClose }: ReceiptViewerProps) {
             <div className="mb-6 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Comprobante:</span>
-                <span className="font-medium">{receipt.receipt_number}</span>
+                <span className="font-medium">{receipt.receipt_number_pr}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Fecha:</span>
