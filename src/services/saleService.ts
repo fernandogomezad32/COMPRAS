@@ -306,60 +306,11 @@ export const saleService = {
       .update({ status })
       .eq('id', id)
       .select(`
-        id,
-        total,
-        subtotal,
-        tax,
-        customer_name,
-        customer_email,
-        payment_method,
-        status,
-        user_id,
-        created_at,
-        customer_id,
-        amount_received,
-        change_amount,
-        discount_amount,
-        discount_percentage,
-        discount_type,
-        customer:customers(
-          id,
-          name,
-          email,
-          phone,
-          address,
-          city,
-          postal_code,
-          tax_id,
-          customer_type,
-          notes,
-          created_at,
-          updated_at
-        ),
+        *,
+        customer:customers(*),
         sale_items(
-          id,
-          sale_id,
-          product_id,
-          quantity,
-          unit_price,
-          total_price,
-          created_at,
-          product:products(
-            id,
-            name,
-            description,
-            price,
-            cost,
-            category_id,
-            stock_quantity,
-            min_stock,
-            barcode,
-            created_at,
-            updated_at,
-            supplier_id,
-            supplier_code,
-            status
-          )
+          *,
+          product:products(*)
         )
       `)
       .single();
