@@ -672,6 +672,9 @@ export function Reports() {
                   Cliente
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Productos Vendidos
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tipo
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -707,6 +710,27 @@ export function Reports() {
                     {(sale.customer?.email || sale.customer_email) && (
                       <div className="text-sm text-gray-500">{sale.customer?.email || sale.customer_email}</div>
                     )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="max-w-xs">
+                      {sale.sale_items && sale.sale_items.length > 0 ? (
+                        <div className="space-y-1">
+                          {sale.sale_items.slice(0, 3).map((item, index) => (
+                            <div key={index} className="text-xs bg-gray-100 rounded px-2 py-1">
+                              <span className="font-medium">{item.product?.name || 'Producto eliminado'}</span>
+                              <span className="text-gray-600 ml-1">x{item.quantity}</span>
+                            </div>
+                          ))}
+                          {sale.sale_items.length > 3 && (
+                            <div className="text-xs text-gray-500">
+                              +{sale.sale_items.length - 3} más...
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">Sin productos</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {sale.customer ? (
