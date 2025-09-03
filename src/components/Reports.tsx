@@ -929,5 +929,3 @@ export function Reports() {
         />
       )}
     </div>
-  );
-}
