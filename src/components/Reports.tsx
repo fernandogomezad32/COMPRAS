@@ -161,16 +161,23 @@ export function Reports() {
           const saleItems = sale.sale_items?.filter(item => item.product_id === product.id) || [];
           return sum + saleItems.reduce((itemSum, item) => itemSum + item.quantity, 0);
         }, 0);
-        return { ...product, soldQuantity: sold };
+          const revenue = filteredSales.reduce((sum, sale) => {
+            const saleItems = sale.sale_items?.filter(item => item.product_id === product.id) || [];
+            return sum + saleItems.reduce((itemSum, item) => itemSum + item.total_price, 0);
+          }, 0);
+          return { ...product, soldQuantity: sold, revenue };
       })
-      .sort((a, b) => b.soldQuantity - a.soldQuantity)
-      .slice(0, 5);
+        .filter(product => product.soldQuantity > 0)
+        .sort((a, b) => b.soldQuantity - a.soldQuantity);
+
+    const allSoldProducts = stats.topProducts;
 
     return {
       totalSales: filteredSales.length,
       revenue,
       profit,
-      topProducts
+      topProducts: stats.topProducts.slice(0, 5),
+      allSoldProducts
     };
   };
 
@@ -260,6 +267,156 @@ export function Reports() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Ventas</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-2">{stats.totalSales}</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <ShoppingCart className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Ingresos</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-2">${stats.revenue.toLocaleString()}</p>
+                </div>
+                <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Ganancia</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-2">${stats.profit.toLocaleString()}</p>
+                </div>
+                <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Clientes</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-2">{customerStats?.totalCustomers || 0}</p>
+                </div>
+                <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+                  <Users className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Productos Vendidos */}
+          <div className="bg-white rounded-xl shadow-md">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Productos Vendidos</h2>
+                <span className="text-sm text-gray-500">
+                  {stats.allSoldProducts.length} productos vendidos
+                </span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Producto
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Categoría
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Precio Unitario
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cantidad Vendida
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Stock Actual
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ingresos Generados
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {stats.allSoldProducts.map((product, index) => (
+                    <tr key={product.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Package className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                            <div className="text-sm text-gray-500 truncate max-w-xs">{product.description}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {product.category?.name || 'Sin categoría'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${product.price.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className="text-lg font-bold text-blue-600">{product.soldQuantity}</span>
+                          <span className="text-sm text-gray-500 ml-1">unidades</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`text-sm font-medium ${
+                          product.stock_quantity <= product.min_stock 
+                            ? 'text-red-600' 
+                            : 'text-gray-900'
+                        }`}>
+                          {product.stock_quantity} unidades
+                        </span>
+                        {product.stock_quantity <= product.min_stock && (
+                          <div className="text-xs text-red-500">Stock bajo</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="text-lg font-bold text-green-600">
+                          ${product.revenue.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Ganancia: ${((product.price - product.cost) * product.soldQuantity).toLocaleString()}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {stats.allSoldProducts.length === 0 && (
+              <div className="text-center py-12">
+                <Package className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No hay productos vendidos</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  No se encontraron productos vendidos para el período seleccionado.
+                </p>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -479,7 +636,7 @@ export function Reports() {
                 <div className="text-right">
                   <p className="font-bold text-gray-900">{product.soldQuantity} vendidos</p>
                   <p className="text-sm text-green-600">
-                    ${(product.price * product.soldQuantity).toLocaleString()}
+                    ${product.revenue.toLocaleString()}
                   </p>
                 </div>
               </div>
