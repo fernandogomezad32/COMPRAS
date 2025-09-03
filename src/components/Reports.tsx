@@ -523,6 +523,9 @@ export function Reports() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Pago
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Subtotal
                 </th>
@@ -579,6 +582,18 @@ export function Reports() {
                       {sale.status === 'completed' ? 'Completada' : 
                        sale.status === 'pending' ? 'Pendiente' : 'Cancelada'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {sale.payment_method === 'cash' && sale.amount_received > 0 ? (
+                      <div className="text-sm">
+                        <div className="text-gray-900">Recibido: ${sale.amount_received.toLocaleString()}</div>
+                        {sale.change_amount > 0 && (
+                          <div className="text-orange-600">Cambio: ${sale.change_amount.toLocaleString()}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-gray-500">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
                     ${sale.subtotal.toLocaleString()}

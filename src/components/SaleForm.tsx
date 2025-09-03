@@ -17,6 +17,8 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
     customer_name: '',
     customer_email: '',
     payment_method: 'cash',
+    amount_received: '0',
+    change_amount: '0',
     status: 'completed'
   });
   const [loading, setLoading] = useState(false);
@@ -30,6 +32,8 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
         customer_name: sale.customer_name,
         customer_email: sale.customer_email,
         payment_method: sale.payment_method,
+        amount_received: sale.amount_received.toString(),
+        change_amount: sale.change_amount.toString(),
         status: sale.status
       });
     }
@@ -56,6 +60,8 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
           customer_name: formData.customer_name,
           customer_email: formData.customer_email,
           payment_method: formData.payment_method,
+          amount_received: parseFloat(formData.amount_received),
+          change_amount: parseFloat(formData.change_amount),
           status: formData.status
         });
       }
@@ -184,6 +190,52 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
               </div>
             </div>
 
+            {/* Campos de pago */}
+            <div className="md:col-span-2">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <CreditCard className="h-5 w-5 mr-2 text-blue-600" />
+                Información de Pago
+              </h3>
+            </div>
+
+            <div>
+              <label htmlFor="amount_received" className="block text-sm font-medium text-gray-700 mb-2">
+                Monto Recibido
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="number"
+                  id="amount_received"
+                  name="amount_received"
+                  value={formData.amount_received}
+                  onChange={handleChange}
+                  step="0.01"
+                  min="0"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="change_amount" className="block text-sm font-medium text-gray-700 mb-2">
+                Cambio Devuelto
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="number"
+                  id="change_amount"
+                  name="change_amount"
+                  value={formData.change_amount}
+                  onChange={handleChange}
+                  step="0.01"
+                  min="0"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
             <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
                 Estado
@@ -214,6 +266,14 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
                 <div>
                   <span className="text-gray-600">Total:</span>
                   <span className="ml-2 font-bold text-green-600">${sale.total.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Recibido:</span>
+                  <span className="ml-2 font-medium">${sale.amount_received.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Cambio:</span>
+                  <span className="ml-2 font-medium text-orange-600">${sale.change_amount.toLocaleString()}</span>
                 </div>
               </div>
             </div>
