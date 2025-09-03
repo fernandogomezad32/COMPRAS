@@ -6,17 +6,24 @@ import {
   Search, 
   CreditCard,
   Trash2,
-  DollarSign
+  DollarSign,
+  Users,
+  UserPlus
 } from 'lucide-react';
 import { productService } from '../services/productService';
+import { customerService } from '../services/customerService';
 import { saleService } from '../services/saleService';
-import type { Product, CartItem } from '../types';
+import type { Product, CartItem, Customer } from '../types';
 
 export function SalesManagement() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
     email: ''
@@ -28,6 +35,7 @@ export function SalesManagement() {
 
   useEffect(() => {
     loadProducts();
+    loadCustomers();
   }, []);
 
   useEffect(() => {
@@ -40,6 +48,15 @@ export function SalesManagement() {
       setProducts(data.filter(p => p.stock_quantity > 0));
     } catch (error) {
       console.error('Error loading products:', error);
+    }
+  };
+
+  const loadCustomers = async () => {
+    try {
+      const data = await customerService.getAll();
+      setCustomers(data);
+    } catch (error) {
+      console.error('Error loading customers:', error);
     }
   };
 
@@ -87,6 +104,26 @@ export function SalesManagement() {
     setCart(cart.filter(item => item.product.id !== productId));
   };
 
+  const selectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setCustomerInfo({
+      name: customer.name,
+      email: customer.email || ''
+    });
+    setShowCustomerSearch(false);
+    setCustomerSearch('');
+  };
+
+  const clearCustomer = () => {
+    setSelectedCustomer(null);
+    setCustomerInfo({ name: '', email: '' });
+  };
+
+  const filteredCustomers = customers.filter(customer =>
+    customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    customer.email?.toLowerCase().includes(customerSearch.toLowerCase())
+  );
+
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     const tax = subtotal * (taxRate / 100);
@@ -104,6 +141,7 @@ export function SalesManagement() {
     try {
       await saleService.create({
         items: cart,
+        customer_id: selectedCustomer?.id,
         customer_name: customerInfo.name,
         customer_email: customerInfo.email,
         payment_method: paymentMethod,
@@ -112,6 +150,7 @@ export function SalesManagement() {
 
       // Reset form
       setCart([]);
+      setSelectedCustomer(null);
       setCustomerInfo({ name: '', email: '' });
       setSearchTerm('');
       await loadProducts(); // Recargar productos para actualizar stock
@@ -233,21 +272,98 @@ export function SalesManagement() {
           {/* Información del Cliente */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Información del Cliente</h2>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Nombre del cliente"
-                value={customerInfo.name}
-                onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                type="email"
-                placeholder="Email del cliente"
-                value={customerInfo.email}
-                onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
+            
+            {selectedCustomer ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      {selectedCustomer.customer_type === 'business' ? (
+                        <Building className="h-5 w-5 text-blue-600" />
+                      ) : (
+                        <Users className="h-5 w-5 text-blue-600" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900">{selectedCustomer.name}</div>
+                      <div className="text-sm text-gray-600">
+                        {selectedCustomer.email || selectedCustomer.phone || 'Sin contacto'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={clearCustomer}
+                    className="text-gray-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setShowCustomerSearch(!showCustomerSearch)}
+                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <Users className="h-5 w-5 text-gray-600" />
+                    <span>Buscar Cliente</span>
+                  </button>
+                  <button
+                    onClick={() => setShowCustomerSearch(false)}
+                    className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <UserPlus className="h-5 w-5 text-gray-600" />
+                  </button>
+                </div>
+
+                {showCustomerSearch && (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar cliente existente..."
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    {customerSearch && (
+                      <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-lg">
+                        {filteredCustomers.slice(0, 5).map(customer => (
+                          <button
+                            key={customer.id}
+                            onClick={() => selectCustomer(customer)}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="font-medium text-sm">{customer.name}</div>
+                            <div className="text-xs text-gray-500">{customer.email || customer.phone}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <input
+                  type="text"
+                  placeholder="Nombre del cliente"
+                  value={customerInfo.name}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <input
+                  type="email"
+                  placeholder="Email del cliente"
+                  value={customerInfo.email}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
+
+            <div className="mt-4">
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}

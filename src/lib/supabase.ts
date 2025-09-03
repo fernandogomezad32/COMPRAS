@@ -8,6 +8,50 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export type Database = {
   public: {
     Tables: {
+      customers: {
+        Row: {
+          id: string;
+          name: string;
+          email: string | null;
+          phone: string | null;
+          address: string | null;
+          city: string | null;
+          postal_code: string | null;
+          tax_id: string | null;
+          customer_type: string;
+          notes: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          email?: string | null;
+          phone?: string | null;
+          address?: string | null;
+          city?: string | null;
+          postal_code?: string | null;
+          tax_id?: string | null;
+          customer_type?: string;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          email?: string | null;
+          phone?: string | null;
+          address?: string | null;
+          city?: string | null;
+          postal_code?: string | null;
+          tax_id?: string | null;
+          customer_type?: string;
+          notes?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       categories: {
         Row: {
           id: string;
@@ -77,6 +121,7 @@ export type Database = {
           tax: number;
           customer_name: string;
           customer_email: string;
+          customer_id: string | null;
           payment_method: string;
           status: string;
           user_id: string | null;
@@ -89,6 +134,7 @@ export type Database = {
           tax?: number;
           customer_name?: string;
           customer_email?: string;
+          customer_id?: string | null;
           payment_method?: string;
           status?: string;
           user_id?: string | null;
@@ -101,6 +147,7 @@ export type Database = {
           tax?: number;
           customer_name?: string;
           customer_email?: string;
+          customer_id?: string | null;
           payment_method?: string;
           status?: string;
           user_id?: string | null;

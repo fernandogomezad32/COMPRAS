@@ -6,6 +6,7 @@ import {
   Package, 
   ShoppingCart, 
   BarChart3, 
+  Users,
   LogOut,
   Store
 } from 'lucide-react';
@@ -24,6 +25,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const navigation = [
     { id: 'dashboard', name: 'Dashboard', icon: Home },
     { id: 'products', name: 'Productos', icon: Package },
+    { id: 'customers', name: 'Clientes', icon: Users },
     { id: 'sales', name: 'Ventas', icon: ShoppingCart },
     { id: 'reports', name: 'Reportes', icon: BarChart3 },
   ];

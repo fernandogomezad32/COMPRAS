@@ -7,6 +7,7 @@ export const saleService = {
       .from('sales')
       .select(`
         *,
+        customer:customers(*),
         sale_items(
           *,
           product:products(*)
@@ -23,6 +24,7 @@ export const saleService = {
       .from('sales')
       .select(`
         *,
+        customer:customers(*),
         sale_items(
           *,
           product:products(*)
@@ -37,12 +39,13 @@ export const saleService = {
 
   async create(saleData: {
     items: CartItem[];
+    customer_id?: string;
     customer_name: string;
     customer_email: string;
     payment_method: string;
     tax_rate: number;
   }): Promise<Sale> {
-    const { items, customer_name, customer_email, payment_method, tax_rate } = saleData;
+    const { items, customer_id, customer_name, customer_email, payment_method, tax_rate } = saleData;
     
     // Calcular totales
     const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
@@ -56,6 +59,7 @@ export const saleService = {
         total,
         subtotal,
         tax,
+        customer_id,
         customer_name,
         customer_email,
         payment_method,

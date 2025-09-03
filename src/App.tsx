@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { AuthForm } from './components/AuthForm';
 import { Dashboard } from './components/Dashboard';
 import { ProductManagement } from './components/ProductManagement';
+import { CustomerManagement } from './components/CustomerManagement';
 import { SalesManagement } from './components/SalesManagement';
 import { Reports } from './components/Reports';
 
@@ -29,6 +30,8 @@ function App() {
         return <Dashboard />;
       case 'products':
         return <ProductManagement />;
+      case 'customers':
+        return <CustomerManagement />;
       case 'sales':
         return <SalesManagement />;
       case 'reports':

@@ -5,17 +5,20 @@ import {
   Calendar,
   DollarSign,
   Package,
-  ShoppingCart
+  ShoppingCart,
+  Users
 } from 'lucide-react';
 import { saleService } from '../services/saleService';
 import { productService } from '../services/productService';
-import type { Sale, Product } from '../types';
+import { customerService } from '../services/customerService';
+import type { Sale, Product, Customer } from '../types';
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export function Reports() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customerStats, setCustomerStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState('today');
 
@@ -25,12 +28,14 @@ export function Reports() {
 
   const loadData = async () => {
     try {
-      const [salesData, productsData] = await Promise.all([
+      const [salesData, productsData, customerStatsData] = await Promise.all([
         saleService.getAll(),
-        productService.getAll()
+        productService.getAll(),
+        customerService.getStats()
       ]);
       setSales(salesData);
       setProducts(productsData);
+      setCustomerStats(customerStatsData);
     } catch (error) {
       console.error('Error loading reports data:', error);
     } finally {
@@ -129,7 +134,7 @@ export function Reports() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -165,7 +170,53 @@ export function Reports() {
             </div>
           </div>
         </div>
+
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Clientes</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">{customerStats?.totalCustomers || 0}</p>
+            </div>
+            <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+              <Users className="h-6 w-6 text-orange-600" />
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Top Customers */}
+      {customerStats?.topCustomers && customerStats.topCustomers.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Mejores Clientes</h2>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {customerStats.topCustomers.map((customer: any, index: number) => (
+                <div key={customer.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-gray-900">{customer.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        {customer.email || customer.phone || 'Sin contacto'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-gray-900">{customer.totalPurchases} compras</p>
+                    <p className="text-sm text-green-600">
+                      ${customer.totalSpent.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top Products */}
       <div className="bg-white rounded-xl shadow-md">
@@ -219,6 +270,9 @@ export function Reports() {
                   Cliente
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Tipo
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Método de Pago
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -234,10 +288,25 @@ export function Reports() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {sale.customer_name || 'Cliente anónimo'}
+                      {sale.customer?.name || sale.customer_name || 'Cliente anónimo'}
                     </div>
-                    {sale.customer_email && (
-                      <div className="text-sm text-gray-500">{sale.customer_email}</div>
+                    {(sale.customer?.email || sale.customer_email) && (
+                      <div className="text-sm text-gray-500">{sale.customer?.email || sale.customer_email}</div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {sale.customer ? (
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        sale.customer.customer_type === 'business'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {sale.customer.customer_type === 'business' ? 'Empresa' : 'Individual'}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Anónimo
+                      </span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

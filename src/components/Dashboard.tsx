@@ -5,9 +5,11 @@ import {
   ShoppingCart, 
   AlertTriangle,
   TrendingUp,
-  Calendar
+  Calendar,
+  Users
 } from 'lucide-react';
 import { productService } from '../services/productService';
+import { customerService } from '../services/customerService';
 import { saleService } from '../services/saleService';
 import type { Product } from '../types';
 import { format } from 'date-fns';
@@ -19,7 +21,8 @@ export function Dashboard() {
     totalRevenue: 0,
     todayRevenue: 0,
     totalProducts: 0,
-    lowStockItems: 0
+    lowStockItems: 0,
+    totalCustomers: 0
   });
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,16 +33,18 @@ export function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const [salesStats, products, lowStock] = await Promise.all([
+      const [salesStats, products, lowStock, customerStats] = await Promise.all([
         saleService.getStats(),
         productService.getAll(),
-        productService.getLowStock()
+        productService.getLowStock(),
+        customerService.getStats()
       ]);
 
       setStats({
         ...salesStats,
         totalProducts: products.length,
-        lowStockItems: lowStock.length
+        lowStockItems: lowStock.length,
+        totalCustomers: customerStats.totalCustomers
       });
       setLowStockProducts(lowStock);
     } catch (error) {
@@ -89,6 +94,15 @@ export function Dashboard() {
       color: 'bg-indigo-500',
       textColor: 'text-indigo-600',
       bgColor: 'bg-indigo-50'
+    }
+    },
+    {
+      title: 'Total Clientes',
+      value: stats.totalCustomers,
+      icon: Users,
+      color: 'bg-orange-500',
+      textColor: 'text-orange-600',
+      bgColor: 'bg-orange-50'
     }
   ];
 

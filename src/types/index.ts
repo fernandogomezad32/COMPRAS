@@ -5,6 +5,21 @@ export interface Category {
   created_at: string;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  tax_id?: string;
+  customer_type: 'individual' | 'business';
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -27,11 +42,13 @@ export interface Sale {
   tax: number;
   customer_name: string;
   customer_email: string;
+  customer_id: string | null;
   payment_method: string;
   status: string;
   user_id: string | null;
   created_at: string;
   sale_items?: SaleItem[];
+  customer?: Customer;
 }
 
 export interface SaleItem {
