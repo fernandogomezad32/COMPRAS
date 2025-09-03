@@ -176,7 +176,7 @@ export function SalesManagement() {
       setAmountReceived('');
       await loadProducts(); // Recargar productos para actualizar stock
       
-      alert('¡Venta procesada exitosamente!');
+      alert('¡Venta procesada exitosamente! Se ha generado el comprobante de pago.');
     } catch (err: any) {
       setError(err.message || 'Error al procesar la venta');
     } finally {

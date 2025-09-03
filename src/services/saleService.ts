@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Sale, SaleItem, CartItem } from '../types';
+import type { Sale, SaleItem, CartItem, PaymentReceipt } from '../types';
 
 export const saleService = {
   async getAll(): Promise<Sale[]> {
@@ -11,7 +11,8 @@ export const saleService = {
         sale_items(
           *,
           product:products(*)
-        )
+        ),
+        payment_receipt:payment_receipts(*)
       `)
       .order('created_at', { ascending: false });
 
@@ -28,7 +29,8 @@ export const saleService = {
         sale_items(
           *,
           product:products(*)
-        )
+        ),
+        payment_receipt:payment_receipts(*)
       `)
       .eq('id', id)
       .single();

@@ -21,6 +21,7 @@ import { reportService } from '../services/reportService';
 import type { Sale, Product, Customer, Report } from '../types';
 import { ReportForm } from './ReportForm';
 import { SaleForm } from './SaleForm';
+import { ReceiptViewer } from './ReceiptViewer';
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
@@ -36,6 +37,7 @@ export function Reports() {
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [viewingReceipt, setViewingReceipt] = useState<Sale | null>(null);
   const [activeTab, setActiveTab] = useState<'analytics' | 'saved'>('analytics');
 
   useEffect(() => {
@@ -461,6 +463,9 @@ export function Reports() {
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Ingresos Generados
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Comprobante
                     </th>
                   </tr>
                 </thead>
@@ -968,6 +973,17 @@ export function Reports() {
                       </button>
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    {sale.payment_receipt && sale.payment_receipt.length > 0 && (
+                      <button
+                        onClick={() => setViewingReceipt(sale)}
+                        className="text-purple-600 hover:text-purple-900 p-2 hover:bg-purple-50 rounded-lg transition-colors"
+                        title="Ver comprobante"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </button>
+                    )}
+                  </td>
                 </tr>
                 );
               })}
@@ -1006,6 +1022,14 @@ export function Reports() {
             setShowSaleForm(false);
             setEditingSale(null);
           }}
+        />
+      )}
+
+      {/* Modal del visor de comprobante */}
+      {viewingReceipt && viewingReceipt.payment_receipt && viewingReceipt.payment_receipt.length > 0 && (
+        <ReceiptViewer
+          receipt={viewingReceipt.payment_receipt[0]}
+          onClose={() => setViewingReceipt(null)}
         />
       )}
     </div>

@@ -58,6 +58,7 @@ export interface Sale {
   change_amount: number;
   sale_items?: SaleItem[];
   customer?: Customer;
+  payment_receipt?: PaymentReceipt[];
 }
 
 export interface SaleItem {
@@ -99,6 +100,21 @@ export interface Supplier {
   notes: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface PaymentReceipt {
+  id: string;
+  sale_id: string;
+  receipt_number: string;
+  barcode: string;
+  receipt_type: 'sale' | 'refund' | 'exchange' | 'credit_note';
+  status: 'active' | 'cancelled' | 'voided';
+  issued_at: string;
+  voided_at?: string;
+  void_reason?: string;
+  created_at: string;
+  updated_at: string;
+  sale?: Sale;
 }
 
 export interface Report {
