@@ -30,6 +30,7 @@ export function SalesManagement() {
     email: ''
   });
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [amountReceived, setAmountReceived] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,8 +128,10 @@ export function SalesManagement() {
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     const total = subtotal;
+    const received = parseFloat(amountReceived) || 0;
+    const change = received > total ? received - total : 0;
     
-    return { subtotal, total };
+    return { subtotal, total, received, change };
   };
 
   const processSale = async () => {
@@ -143,7 +146,9 @@ export function SalesManagement() {
         customer_id: selectedCustomer?.id,
         customer_name: customerInfo.name,
         customer_email: customerInfo.email,
-        payment_method: paymentMethod
+        payment_method: paymentMethod,
+        amount_received: parseFloat(amountReceived) || 0,
+        change_amount: calculateTotals().change
       });
 
       // Reset form
@@ -151,6 +156,7 @@ export function SalesManagement() {
       setSelectedCustomer(null);
       setCustomerInfo({ name: '', email: '' });
       setSearchTerm('');
+      setAmountReceived('');
       await loadProducts(); // Recargar productos para actualizar stock
       
       alert('¡Venta procesada exitosamente!');
@@ -161,7 +167,7 @@ export function SalesManagement() {
     }
   };
 
-  const { subtotal, total } = calculateTotals();
+  const { subtotal, total, received, change } = calculateTotals();
 
   return (
     <div className="space-y-6">
@@ -372,6 +378,48 @@ export function SalesManagement() {
                 <option value="transfer">Transferencia</option>
               </select>
             </div>
+
+            {/* Campos de pago para efectivo */}
+            {paymentMethod === 'cash' && (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label htmlFor="amountReceived" className="block text-sm font-medium text-gray-700 mb-2">
+                    Monto Recibido
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                    <input
+                      type="number"
+                      id="amountReceived"
+                      value={amountReceived}
+                      onChange={(e) => setAmountReceived(e.target.value)}
+                      step="0.01"
+                      min="0"
+                      className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                {received > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">Cambio a devolver:</span>
+                      <span className={`text-lg font-bold ${
+                        change > 0 ? 'text-orange-600' : 'text-green-600'
+                      }`}>
+                        ${change.toLocaleString()}
+                      </span>
+                    </div>
+                    {received < total && (
+                      <div className="mt-2 text-sm text-red-600">
+                        Falta: ${(total - received).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Resumen */}
@@ -398,7 +446,7 @@ export function SalesManagement() {
 
             <button
               onClick={processSale}
-              disabled={cart.length === 0 || loading}
+              disabled={cart.length === 0 || loading || (paymentMethod === 'cash' && received < total)}
               className="w-full mt-6 bg-green-600 text-white py-4 px-4 rounded-lg font-medium hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
             >
               <CreditCard className="h-5 w-5" />

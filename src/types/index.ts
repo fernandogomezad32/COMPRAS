@@ -51,6 +51,8 @@ export interface Sale {
   status: string;
   user_id: string | null;
   created_at: string;
+  amount_received: number;
+  change_amount: number;
   sale_items?: SaleItem[];
   customer?: Customer;
 }

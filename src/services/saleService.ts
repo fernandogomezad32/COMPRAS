@@ -43,8 +43,10 @@ export const saleService = {
     customer_name: string;
     customer_email: string;
     payment_method: string;
+    amount_received?: number;
+    change_amount?: number;
   }): Promise<Sale> {
-    const { items, customer_id, customer_name, customer_email, payment_method } = saleData;
+    const { items, customer_id, customer_name, customer_email, payment_method, amount_received = 0, change_amount = 0 } = saleData;
     
     // Calcular totales
     const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
@@ -61,6 +63,8 @@ export const saleService = {
         customer_name,
         customer_email,
         payment_method,
+        amount_received,
+        change_amount,
         status: 'completed'
       })
       .select()
