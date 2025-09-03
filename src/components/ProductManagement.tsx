@@ -70,16 +70,19 @@ export function ProductManagement() {
   };
 
   const handleDelete = async (productId: string) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer.')) {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este producto?\n\nNota: Si el producto tiene ventas asociadas, se mantendrá el historial pero se marcará como eliminado.')) {
       return;
     }
 
     try {
-      await productService.delete(productId);
       await loadData();
+      alert('Producto eliminado exitosamente');
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Error al eliminar el producto. Puede que tenga ventas asociadas.');
+      
+      // Mostrar mensaje de error más específico
+      const errorMessage = error.message || 'Error desconocido al eliminar el producto';
+      alert('Error al eliminar el producto:\n\n' + errorMessage);
     }
   };
 

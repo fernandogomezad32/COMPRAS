@@ -83,13 +83,37 @@ export const productService = {
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
+    // Primero verificar si el producto existe
+    const { data: product, error: fetchError } = await supabase
+      .from('products')
+      .select('id, name')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        throw new Error('El producto no existe');
+      }
+      throw new Error('Error al verificar el producto: ' + fetchError.message);
+    }
+
+    // Intentar eliminar el producto
+    const { error: deleteError } = await supabase
       .from('products')
       .delete()
       .eq('id', id);
 
-    if (error) {
-      throw error;
+    if (deleteError) {
+      console.error('Error deleting product:', deleteError);
+      
+      // Manejar diferentes tipos de errores
+      if (deleteError.code === '23503') {
+        throw new Error('No se puede eliminar el producto porque está siendo usado en otras tablas');
+      } else if (deleteError.code === '42501') {
+        throw new Error('No tienes permisos para eliminar este producto');
+      } else {
+        throw new Error('Error al eliminar el producto: ' + deleteError.message);
+      }
     }
   },
 
