@@ -6,21 +6,32 @@ import {
   DollarSign,
   Package,
   ShoppingCart,
-  Users
+  Users,
+  Plus,
+  Edit2,
+  Trash2,
+  Star,
+  FileText
 } from 'lucide-react';
 import { saleService } from '../services/saleService';
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
-import type { Sale, Product, Customer } from '../types';
+import { reportService } from '../services/reportService';
+import type { Sale, Product, Customer, Report } from '../types';
+import { ReportForm } from './ReportForm';
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export function Reports() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [customerStats, setCustomerStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState('today');
+  const [showForm, setShowForm] = useState(false);
+  const [editingReport, setEditingReport] = useState<Report | null>(null);
+  const [activeTab, setActiveTab] = useState<'analytics' | 'saved'>('analytics');
 
   useEffect(() => {
     loadData();
@@ -28,19 +39,55 @@ export function Reports() {
 
   const loadData = async () => {
     try {
-      const [salesData, productsData, customerStatsData] = await Promise.all([
+      const [salesData, productsData, customerStatsData, reportsData] = await Promise.all([
         saleService.getAll(),
         productService.getAll(),
-        customerService.getStats()
+        customerService.getStats(),
+        reportService.getAll()
       ]);
       setSales(salesData);
       setProducts(productsData);
       setCustomerStats(customerStatsData);
+      setReports(reportsData);
     } catch (error) {
       console.error('Error loading reports data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditReport = (report: Report) => {
+    setEditingReport(report);
+    setShowForm(true);
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este reporte?')) {
+      return;
+    }
+
+    try {
+      await reportService.delete(reportId);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      alert('Error al eliminar el reporte');
+    }
+  };
+
+  const handleToggleFavorite = async (reportId: string, isFavorite: boolean) => {
+    try {
+      await reportService.toggleFavorite(reportId, !isFavorite);
+      await loadData();
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
+  const handleFormSubmit = async () => {
+    setShowForm(false);
+    setEditingReport(null);
+    await loadData();
   };
 
   const getFilteredSales = () => {
@@ -115,24 +162,187 @@ export function Reports() {
           <h1 className="text-3xl font-bold text-gray-900">Reportes</h1>
           <p className="text-gray-600 mt-1">Analiza el rendimiento de tu negocio</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <select
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
           >
-            <option value="today">Hoy</option>
-            <option value="week">Esta Semana</option>
-            <option value="month">Este Mes</option>
-            <option value="all">Todo el Tiempo</option>
-          </select>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2">
-            <Download className="h-4 w-4" />
-            <span>Exportar</span>
+            <Plus className="h-4 w-4" />
+            <span>Nuevo Reporte</span>
           </button>
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="bg-white rounded-xl shadow-md">
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8 px-6">
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'analytics'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="h-4 w-4" />
+                <span>Análisis</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('saved')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'saved'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <FileText className="h-4 w-4" />
+                <span>Reportes Guardados ({reports.length})</span>
+              </div>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {activeTab === 'analytics' && (
+        <>
+          {/* Filtros para análisis */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Filtros de Análisis</h2>
+              <div className="flex items-center space-x-4">
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="today">Hoy</option>
+                  <option value="week">Esta Semana</option>
+                  <option value="month">Este Mes</option>
+                  <option value="all">Todo el Tiempo</option>
+                </select>
+                <button className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2">
+                  <Download className="h-4 w-4" />
+                  <span>Exportar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'saved' && (
+        <div className="bg-white rounded-xl shadow-md">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Reportes Guardados</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reporte
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tipo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Período
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Creado
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {reports.map((report) => (
+                  <tr key={report.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <FileText className="h-8 w-8 text-blue-500" />
+                        </div>
+                        <div className="ml-4">
+                          <div className="flex items-center space-x-2">
+                            <div className="text-sm font-medium text-gray-900">{report.name}</div>
+                            {report.is_favorite && (
+                              <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500">{report.description}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                        {report.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {report.date_range.period === 'custom' 
+                        ? `${report.date_range.start_date} - ${report.date_range.end_date}`
+                        : report.date_range.period
+                      }
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {format(new Date(report.created_at), 'dd/MM/yyyy', { locale: es })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleToggleFavorite(report.id, report.is_favorite)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            report.is_favorite
+                              ? 'text-yellow-600 hover:bg-yellow-50'
+                              : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'
+                          }`}
+                        >
+                          <Star className={`h-4 w-4 ${report.is_favorite ? 'fill-current' : ''}`} />
+                        </button>
+                        <button
+                          onClick={() => handleEditReport(report)}
+                          className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteReport(report.id)}
+                          className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {reports.length === 0 && (
+            <div className="text-center py-12">
+              <FileText className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No hay reportes guardados</h3>
+              <p className="mt-1 text-sm text-gray-500">Crea tu primer reporte personalizado.</p>
+              <button
+                onClick={() => setShowForm(true)}
+                className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Crear Reporte
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-md p-6">
@@ -330,6 +540,20 @@ export function Reports() {
           </div>
         )}
       </div>
+        </>
+      )}
+
+      {/* Modal del formulario */}
+      {showForm && (
+        <ReportForm
+          report={editingReport}
+          onSubmit={handleFormSubmit}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingReport(null);
+          }}
+        />
+      )}
     </div>
   );
 }

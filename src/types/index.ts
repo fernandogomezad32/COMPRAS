@@ -95,3 +95,20 @@ export interface Supplier {
   created_at: string;
   updated_at: string;
 }
+
+export interface Report {
+  id: string;
+  name: string;
+  description: string;
+  type: 'sales' | 'inventory' | 'customers' | 'suppliers' | 'custom';
+  filters: Record<string, any>;
+  date_range: {
+    start_date?: string;
+    end_date?: string;
+    period?: 'today' | 'week' | 'month' | 'year' | 'custom';
+  };
+  created_by: string;
+  is_favorite: boolean;
+  created_at: string;
+  updated_at: string;
+}
