@@ -32,8 +32,8 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
         customer_name: sale.customer_name,
         customer_email: sale.customer_email,
         payment_method: sale.payment_method,
-        amount_received: sale.amount_received.toString(),
-        change_amount: sale.change_amount.toString(),
+        amount_received: (sale.amount_received ?? 0).toString(),
+        change_amount: (sale.change_amount ?? 0).toString(),
         status: sale.status
       });
     }
