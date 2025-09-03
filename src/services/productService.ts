@@ -83,46 +83,13 @@ export const productService = {
   },
 
   async delete(id: string): Promise<void> {
-    // Verificar si el producto existe antes de eliminarlo
-    const { data: existingProduct, error: checkError } = await supabase
-      .from('products')
-      .select('id, name')
-      .eq('id', id)
-      .single();
-
-    if (checkError) {
-      if (checkError.code === 'PGRST116') {
-        throw new Error('El producto no existe o ya fue eliminado');
-      }
-      throw new Error(`Error al verificar el producto: ${checkError.message}`);
-    }
-
-    // Verificar si el producto tiene ventas asociadas
-    const { data: saleItems, error: salesError } = await supabase
-      .from('sale_items')
-      .select('id')
-      .eq('product_id', id)
-      .limit(1);
-
-    if (salesError) {
-      throw new Error(`Error al verificar ventas: ${salesError.message}`);
-    }
-
-    if (saleItems && saleItems.length > 0) {
-      throw new Error('PRODUCT_HAS_SALES');
-    }
-
-    // Proceder con la eliminación
     const { error } = await supabase
       .from('products')
       .delete()
       .eq('id', id);
 
     if (error) {
-      if (error.code === '23503') {
-        throw new Error('No se puede eliminar el producto porque está siendo usado en otras tablas');
-      }
-      throw new Error(`Error al eliminar el producto: ${error.message}`);
+      throw error;
     }
   },
 

@@ -70,38 +70,16 @@ export function ProductManagement() {
   };
 
   const handleDelete = async (productId: string) => {
-    try {
-      if (!window.confirm('¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer.')) {
-        return;
-      }
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este producto? Esta acción no se puede deshacer.')) {
+      return;
+    }
 
+    try {
       await productService.delete(productId);
       await loadData();
-      alert('Producto eliminado exitosamente');
     } catch (error) {
       console.error('Error deleting product:', error);
-      
-      if (error instanceof Error && error.message === 'PRODUCT_HAS_SALES') {
-        const shouldDeactivate = window.confirm(
-          'No se puede eliminar el producto porque tiene ventas asociadas.\n\n' +
-          '¿Deseas desactivarlo en su lugar? Los productos inactivos no aparecerán en las ventas pero mantendrán su historial.'
-        );
-        
-        if (shouldDeactivate) {
-          try {
-            await productService.deactivate(productId);
-            await loadData();
-            alert('Producto desactivado exitosamente');
-          } catch (deactivateError) {
-            console.error('Error deactivating product:', deactivateError);
-            const errorMessage = deactivateError instanceof Error ? deactivateError.message : 'Error desconocido';
-            alert(`Error al desactivar el producto: ${errorMessage}`);
-          }
-        }
-      } else {
-        const errorMessage = error instanceof Error ? error.message : 'Error desconocido al eliminar el producto';
-        alert(`Error al eliminar el producto: ${errorMessage}`);
-      }
+      alert('Error al eliminar el producto. Puede que tenga ventas asociadas.');
     }
   };
 
