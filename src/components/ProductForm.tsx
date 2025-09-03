@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { productService } from '../services/productService';
-import type { Product, Category } from '../types';
+import { supplierService } from '../services/supplierService';
+import type { Product, Category, Supplier } from '../types';
 
 interface ProductFormProps {
   product: Product | null;
@@ -11,12 +12,15 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, categories, onSubmit, onCancel }: ProductFormProps) {
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
     cost: '',
     category_id: '',
+    supplier_id: '',
+    supplier_code: '',
     stock_quantity: '',
     min_stock: '5',
     barcode: ''
@@ -25,6 +29,7 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    loadSuppliers();
     if (product) {
       setFormData({
         name: product.name,
@@ -32,12 +37,23 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
         price: product.price.toString(),
         cost: product.cost.toString(),
         category_id: product.category_id || '',
+        supplier_id: product.supplier_id || '',
+        supplier_code: product.supplier_code || '',
         stock_quantity: product.stock_quantity.toString(),
         min_stock: product.min_stock.toString(),
         barcode: product.barcode || ''
       });
     }
   }, [product]);
+
+  const loadSuppliers = async () => {
+    try {
+      const data = await supplierService.getAll();
+      setSuppliers(data.filter(s => s.status === 'active'));
+    } catch (error) {
+      console.error('Error loading suppliers:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +67,8 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
         price: parseFloat(formData.price),
         cost: parseFloat(formData.cost),
         category_id: formData.category_id || null,
+        supplier_id: formData.supplier_id || null,
+        supplier_code: formData.supplier_code || null,
         stock_quantity: parseInt(formData.stock_quantity),
         min_stock: parseInt(formData.min_stock),
         barcode: formData.barcode || null
@@ -131,6 +149,39 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
                   <option key={category.id} value={category.id}>{category.name}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label htmlFor="supplier_id" className="block text-sm font-medium text-gray-700 mb-2">
+                Proveedor
+              </label>
+              <select
+                id="supplier_id"
+                name="supplier_id"
+                value={formData.supplier_id}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Seleccionar proveedor</option>
+                {suppliers.map(supplier => (
+                  <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="supplier_code" className="block text-sm font-medium text-gray-700 mb-2">
+                Código del Proveedor
+              </label>
+              <input
+                type="text"
+                id="supplier_code"
+                name="supplier_code"
+                value={formData.supplier_code}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Código interno del proveedor"
+              />
             </div>
 
             <div className="md:col-span-2">

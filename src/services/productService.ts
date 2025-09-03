@@ -7,7 +7,8 @@ export const productService = {
       .from('products')
       .select(`
         *,
-        category:categories(*)
+        category:categories(*),
+        supplier:suppliers(*)
       `)
       .order('name');
 
@@ -20,7 +21,8 @@ export const productService = {
       .from('products')
       .select(`
         *,
-        category:categories(*)
+        category:categories(*),
+        supplier:suppliers(*)
       `)
       .eq('id', id)
       .single();
@@ -34,7 +36,8 @@ export const productService = {
       .from('products')
       .select(`
         *,
-        category:categories(*)
+        category:categories(*),
+        supplier:suppliers(*)
       `)
       .order('stock_quantity');
 
@@ -54,7 +57,8 @@ export const productService = {
       .insert(product)
       .select(`
         *,
-        category:categories(*)
+        category:categories(*),
+        supplier:suppliers(*)
       `)
       .single();
 
@@ -69,7 +73,8 @@ export const productService = {
       .eq('id', id)
       .select(`
         *,
-        category:categories(*)
+        category:categories(*),
+        supplier:suppliers(*)
       `)
       .single();
 
@@ -93,7 +98,8 @@ export const productService = {
       .eq('id', id)
       .select(`
         *,
-        category:categories(*)
+        category:categories(*),
+        supplier:suppliers(*)
       `)
       .single();
 

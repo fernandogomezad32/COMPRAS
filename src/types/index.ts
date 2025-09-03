@@ -32,7 +32,10 @@ export interface Product {
   barcode: string | null;
   created_at: string;
   updated_at: string;
+  supplier_id: string | null;
+  supplier_code: string | null;
   category?: Category;
+  supplier?: Supplier;
 }
 
 export interface Sale {

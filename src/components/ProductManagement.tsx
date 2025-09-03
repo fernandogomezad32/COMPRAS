@@ -180,12 +180,22 @@ export function ProductManagement() {
                       {product.barcode && (
                         <div className="text-xs text-gray-400">Código: {product.barcode}</div>
                       )}
+                      {product.supplier_code && (
+                        <div className="text-xs text-gray-400">Código Proveedor: {product.supplier_code}</div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      {product.category?.name || 'Sin categoría'}
-                    </span>
+                    <div className="space-y-1">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {product.category?.name || 'Sin categoría'}
+                      </span>
+                      {product.supplier && (
+                        <div className="text-xs text-gray-500">
+                          Proveedor: {product.supplier.name}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">${product.price.toLocaleString()}</div>
