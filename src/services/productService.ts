@@ -36,11 +36,16 @@ export const productService = {
         *,
         category:categories(*)
       `)
-      .filter('stock_quantity', 'lte', 'min_stock')
       .order('stock_quantity');
 
     if (error) throw error;
-    return data || [];
+    
+    // Filter products where stock_quantity <= min_stock
+    const lowStockProducts = (data || []).filter(product => 
+      product.stock_quantity <= product.min_stock
+    );
+    
+    return lowStockProducts;
   },
 
   async create(product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'category'>): Promise<Product> {
