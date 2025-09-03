@@ -170,13 +170,13 @@ export function Reports() {
         .filter(product => product.soldQuantity > 0)
         .sort((a, b) => b.soldQuantity - a.soldQuantity);
 
-    const allSoldProducts = stats.topProducts;
+    const allSoldProducts = topProducts;
 
     return {
       totalSales: filteredSales.length,
       revenue,
       profit,
-      topProducts: stats.topProducts.slice(0, 5),
+      topProducts: topProducts.slice(0, 5),
       allSoldProducts
     };
   };
