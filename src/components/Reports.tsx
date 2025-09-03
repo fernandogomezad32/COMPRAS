@@ -235,10 +235,20 @@ export function Reports() {
     const salesData = [
       ['VENTAS DETALLADAS'],
       [],
-      ['Fecha', 'Cliente', 'Tipo Cliente', 'Email', 'Método Pago', 'Estado', 'Subtotal', 'Descuento', 'Total', 'Recibido', 'Cambio', 'Productos']
+      ['Fecha', 'Cliente', 'Tipo Cliente', 'Email', 'Método Pago', 'Estado', 'Subtotal', 'Descuento', 'Ganancia', 'Total', 'Recibido', 'Cambio', 'Productos']
     ];
     
     filteredSales.forEach(sale => {
+      // Calcular ganancia de la venta
+      const saleProfit = sale.sale_items?.reduce((itemSum, item) => {
+        const product = products.find(p => p.id === item.product_id);
+        if (!product) return itemSum;
+        const itemProfit = (item.unit_price - product.cost) * item.quantity;
+        return itemSum + itemProfit;
+      }, 0) || 0;
+      
+      const finalProfit = saleProfit - (sale.discount_amount || 0);
+      
       const productsText = sale.sale_items?.map(item => 
         `${item.product?.name || 'Producto eliminado'} x${item.quantity}`
       ).join(', ') || 'Sin productos';
@@ -258,6 +268,7 @@ export function Reports() {
         sale.status === 'completed' ? 'Completada' : sale.status === 'pending' ? 'Pendiente' : 'Cancelada',
         sale.subtotal,
         discountText,
+        finalProfit,
         sale.total,
         sale.amount_received || 0,
         sale.change_amount || 0,
@@ -803,7 +814,7 @@ export function Reports() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {getFilteredSales().slice(0, 10).map((sale) => (
+              {getFilteredSales().slice(0, 10).map((sale) => {
                 // Calcular ganancia de la venta
                 const saleProfit = sale.sale_items?.reduce((itemSum, item) => {
                   const product = products.find(p => p.id === item.product_id);
@@ -816,6 +827,7 @@ export function Reports() {
                 const finalProfit = saleProfit - (sale.discount_amount || 0);
                 const isProfitable = finalProfit >= 0;
                 
+                return (
                 <tr key={sale.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
@@ -946,7 +958,8 @@ export function Reports() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
