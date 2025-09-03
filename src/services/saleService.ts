@@ -11,8 +11,7 @@ export const saleService = {
         sale_items(
           *,
           product:products(*)
-        ),
-        payment_receipt:payment_receipts(*)
+        )
       `)
       .order('created_at', { ascending: false });
 
@@ -29,8 +28,7 @@ export const saleService = {
         sale_items(
           *,
           product:products(*)
-        ),
-        payment_receipt:payment_receipts(*)
+        )
       `)
       .eq('id', id)
       .single();
