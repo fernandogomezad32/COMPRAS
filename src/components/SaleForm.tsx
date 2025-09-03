@@ -212,6 +212,7 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
                   onChange={handleChange}
                   step="0.01"
                   min="0"
+                  max="99999999.99"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -231,6 +232,7 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
                   onChange={handleChange}
                   step="0.01"
                   min="0"
+                  max="99999999.99"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -261,19 +263,19 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">Subtotal:</span>
-                  <span className="ml-2 font-medium">${sale.subtotal.toLocaleString()}</span>
+                  <span className="ml-2 font-medium">${(sale.subtotal ?? 0).toLocaleString()}</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Total:</span>
-                  <span className="ml-2 font-bold text-green-600">${sale.total.toLocaleString()}</span>
+                  <span className="ml-2 font-bold text-green-600">${(sale.total ?? 0).toLocaleString()}</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Recibido:</span>
-                  <span className="ml-2 font-medium">${sale.amount_received.toLocaleString()}</span>
+                  <span className="ml-2 font-medium">${(sale.amount_received ?? 0).toLocaleString()}</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Cambio:</span>
-                  <span className="ml-2 font-medium text-orange-600">${sale.change_amount.toLocaleString()}</span>
+                  <span className="ml-2 font-medium text-orange-600">${(sale.change_amount ?? 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
