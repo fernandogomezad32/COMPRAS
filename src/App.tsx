@@ -5,6 +5,7 @@ import { AuthForm } from './components/AuthForm';
 import Dashboard from './components/Dashboard';
 import { ProductManagement } from './components/ProductManagement';
 import { CustomerManagement } from './components/CustomerManagement';
+import { SupplierManagement } from './components/SupplierManagement';
 import { SalesManagement } from './components/SalesManagement';
 import { Reports } from './components/Reports';
 
@@ -32,6 +33,8 @@ function App() {
         return <ProductManagement />;
       case 'customers':
         return <CustomerManagement />;
+      case 'suppliers':
+        return <SupplierManagement />;
       case 'sales':
         return <SalesManagement />;
       case 'reports':

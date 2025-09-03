@@ -8,6 +8,7 @@ import {
   Trash2,
   DollarSign,
   Users,
+  Building,
   UserPlus
 } from 'lucide-react';
 import { productService } from '../services/productService';
