@@ -6,6 +6,7 @@ import Dashboard from './components/Dashboard';
 import { ProductManagement } from './components/ProductManagement';
 import { CustomerManagement } from './components/CustomerManagement';
 import { SupplierManagement } from './components/SupplierManagement';
+import { CategoryManagement } from './components/CategoryManagement';
 import { SalesManagement } from './components/SalesManagement';
 import { Reports } from './components/Reports';
 
@@ -31,6 +32,8 @@ function App() {
         return <Dashboard />;
       case 'products':
         return <ProductManagement />;
+      case 'categories':
+        return <CategoryManagement />;
       case 'customers':
         return <CustomerManagement />;
       case 'suppliers':

@@ -4,6 +4,7 @@ import {
   X, 
   Home, 
   Package, 
+  Tag,
   ShoppingCart, 
   BarChart3, 
   Users,
@@ -26,6 +27,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const navigation = [
     { id: 'dashboard', name: 'Dashboard', icon: Home },
     { id: 'products', name: 'Productos', icon: Package },
+    { id: 'categories', name: 'Categorías', icon: Tag },
     { id: 'customers', name: 'Clientes', icon: Users },
     { id: 'suppliers', name: 'Proveedores', icon: Building },
     { id: 'sales', name: 'Ventas', icon: ShoppingCart },
