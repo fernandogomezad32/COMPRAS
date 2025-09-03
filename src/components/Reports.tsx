@@ -524,6 +524,9 @@ export function Reports() {
                   Estado
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Subtotal
+                </th>
+                <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -576,6 +579,9 @@ export function Reports() {
                       {sale.status === 'completed' ? 'Completada' : 
                        sale.status === 'pending' ? 'Pendiente' : 'Cancelada'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
+                    ${sale.subtotal.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
                     ${sale.total.toLocaleString()}

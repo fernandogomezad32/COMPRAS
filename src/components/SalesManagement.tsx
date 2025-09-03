@@ -30,7 +30,6 @@ export function SalesManagement() {
     email: ''
   });
   const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [taxRate, setTaxRate] = useState(16);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,10 +126,9 @@ export function SalesManagement() {
 
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    const tax = subtotal * (taxRate / 100);
-    const total = subtotal + tax;
+    const total = subtotal;
     
-    return { subtotal, tax, total };
+    return { subtotal, total };
   };
 
   const processSale = async () => {
@@ -145,8 +143,7 @@ export function SalesManagement() {
         customer_id: selectedCustomer?.id,
         customer_name: customerInfo.name,
         customer_email: customerInfo.email,
-        payment_method: paymentMethod,
-        tax_rate: taxRate
+        payment_method: paymentMethod
       });
 
       // Reset form
@@ -164,7 +161,7 @@ export function SalesManagement() {
     }
   };
 
-  const { subtotal, tax, total } = calculateTotals();
+  const { subtotal, total } = calculateTotals();
 
   return (
     <div className="space-y-6">
@@ -384,10 +381,6 @@ export function SalesManagement() {
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Subtotal:</span>
                 <span className="font-medium">${subtotal.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Impuestos ({taxRate}%):</span>
-                <span className="font-medium">${tax.toLocaleString()}</span>
               </div>
               <div className="border-t border-gray-200 pt-3">
                 <div className="flex justify-between text-lg font-bold">

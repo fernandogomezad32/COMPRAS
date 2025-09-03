@@ -43,14 +43,12 @@ export const saleService = {
     customer_name: string;
     customer_email: string;
     payment_method: string;
-    tax_rate: number;
   }): Promise<Sale> {
-    const { items, customer_id, customer_name, customer_email, payment_method, tax_rate } = saleData;
+    const { items, customer_id, customer_name, customer_email, payment_method } = saleData;
     
     // Calcular totales
     const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    const tax = subtotal * (tax_rate / 100);
-    const total = subtotal + tax;
+    const total = subtotal;
 
     // Crear la venta
     const { data: sale, error: saleError } = await supabase
@@ -58,7 +56,7 @@ export const saleService = {
       .insert({
         total,
         subtotal,
-        tax,
+        tax: 0,
         customer_id,
         customer_name,
         customer_email,

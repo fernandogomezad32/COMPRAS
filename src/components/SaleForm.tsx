@@ -206,14 +206,10 @@ export function SaleForm({ sale, onSubmit, onCancel }: SaleFormProps) {
           {sale && (
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="text-sm font-medium text-gray-900 mb-3">Detalles de la Venta</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">Subtotal:</span>
                   <span className="ml-2 font-medium">${sale.subtotal.toLocaleString()}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Impuestos:</span>
-                  <span className="ml-2 font-medium">${sale.tax.toLocaleString()}</span>
                 </div>
                 <div>
                   <span className="text-gray-600">Total:</span>
