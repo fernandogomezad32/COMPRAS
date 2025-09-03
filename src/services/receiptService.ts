@@ -78,7 +78,7 @@ export const receiptService = {
           )
         )
       `)
-      .eq('receipt_number_pr', receiptNumber)
+      .eq('receipt_number', receiptNumber)
       .single();
 
     if (error) throw error;
