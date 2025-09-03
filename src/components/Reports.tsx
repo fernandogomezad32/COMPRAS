@@ -23,6 +23,7 @@ import { ReportForm } from './ReportForm';
 import { SaleForm } from './SaleForm';
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import * as XLSX from 'xlsx';
 
 export function Reports() {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -183,6 +184,90 @@ export function Reports() {
 
   const stats = generateStats();
 
+  const exportToExcel = () => {
+    const filteredSales = getFilteredSales();
+    const soldProducts = stats.allSoldProducts;
+    
+    // Crear workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Hoja 1: Resumen de ventas
+    const summaryData = [
+      ['Reporte de Ventas'],
+      ['Período:', dateFilter === 'today' ? 'Hoy' : dateFilter === 'week' ? 'Esta Semana' : dateFilter === 'month' ? 'Este Mes' : 'Todo el Tiempo'],
+      ['Fecha de generación:', format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })],
+      [],
+      ['RESUMEN'],
+      ['Total de ventas:', stats.totalSales],
+      ['Ingresos totales:', `$${stats.revenue.toLocaleString()}`],
+      ['Ganancia total:', `$${stats.profit.toLocaleString()}`],
+      ['Productos vendidos:', soldProducts.length],
+      []
+    ];
+    
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
+    
+    // Hoja 2: Productos vendidos
+    const productsData = [
+      ['PRODUCTOS VENDIDOS'],
+      [],
+      ['Producto', 'Categoría', 'Precio Unitario', 'Cantidad Vendida', 'Stock Actual', 'Ingresos Generados', 'Ganancia Total']
+    ];
+    
+    soldProducts.forEach(product => {
+      const profit = (product.price - product.cost) * product.soldQuantity;
+      productsData.push([
+        product.name,
+        product.category?.name || 'Sin categoría',
+        product.price,
+        product.soldQuantity,
+        product.stock_quantity,
+        product.revenue,
+        profit
+      ]);
+    });
+    
+    const ws2 = XLSX.utils.aoa_to_sheet(productsData);
+    XLSX.utils.book_append_sheet(wb, ws2, 'Productos Vendidos');
+    
+    // Hoja 3: Ventas detalladas
+    const salesData = [
+      ['VENTAS DETALLADAS'],
+      [],
+      ['Fecha', 'Cliente', 'Tipo Cliente', 'Email', 'Método Pago', 'Estado', 'Subtotal', 'Total', 'Recibido', 'Cambio', 'Productos']
+    ];
+    
+    filteredSales.forEach(sale => {
+      const productsText = sale.sale_items?.map(item => 
+        `${item.product?.name || 'Producto eliminado'} x${item.quantity}`
+      ).join(', ') || 'Sin productos';
+      
+      salesData.push([
+        format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es }),
+        sale.customer?.name || sale.customer_name || 'Cliente anónimo',
+        sale.customer ? (sale.customer.customer_type === 'business' ? 'Empresa' : 'Individual') : 'Anónimo',
+        sale.customer?.email || sale.customer_email || '',
+        sale.payment_method,
+        sale.status === 'completed' ? 'Completada' : sale.status === 'pending' ? 'Pendiente' : 'Cancelada',
+        sale.subtotal,
+        sale.total,
+        sale.amount_received || 0,
+        sale.change_amount || 0,
+        productsText
+      ]);
+    });
+    
+    const ws3 = XLSX.utils.aoa_to_sheet(salesData);
+    XLSX.utils.book_append_sheet(wb, ws3, 'Ventas Detalladas');
+    
+    // Generar nombre del archivo
+    const fileName = `reporte_ventas_${dateFilter}_${format(new Date(), 'yyyy-MM-dd_HH-mm', { locale: es })}.xlsx`;
+    
+    // Descargar archivo
+    XLSX.writeFile(wb, fileName);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -262,6 +347,13 @@ export function Reports() {
                   <option value="all">Todo el Tiempo</option>
                 </select>
                 <button className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2">
+                  <Download className="h-4 w-4" />
+                  <span>Exportar</span>
+                </button>
+                <button 
+                  onClick={exportToExcel}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+                >
                   <Download className="h-4 w-4" />
                   <span>Exportar</span>
                 </button>
