@@ -6,7 +6,22 @@ export const saleService = {
     const { data, error } = await supabase
       .from('sales')
       .select(`
-        *,
+        id,
+        total,
+        subtotal,
+        tax,
+        customer_name,
+        customer_email,
+        payment_method,
+        status,
+        user_id,
+        created_at,
+        customer_id,
+        amount_received,
+        change_amount,
+        discount_amount,
+        discount_percentage,
+        discount_type,
         customer:customers(*),
         sale_items(
           *,
@@ -24,7 +39,22 @@ export const saleService = {
     const { data, error } = await supabase
       .from('sales')
       .select(`
-        *,
+        id,
+        total,
+        subtotal,
+        tax,
+        customer_name,
+        customer_email,
+        payment_method,
+        status,
+        user_id,
+        created_at,
+        customer_id,
+        amount_received,
+        change_amount,
+        discount_amount,
+        discount_percentage,
+        discount_type,
         customer:customers(*),
         sale_items(
           *,
@@ -161,7 +191,22 @@ export const saleService = {
       .update({ status })
       .eq('id', id)
       .select(`
-        *,
+        id,
+        total,
+        subtotal,
+        tax,
+        customer_name,
+        customer_email,
+        payment_method,
+        status,
+        user_id,
+        created_at,
+        customer_id,
+        amount_received,
+        change_amount,
+        discount_amount,
+        discount_percentage,
+        discount_type,
         customer:customers(*),
         sale_items(
           *,
