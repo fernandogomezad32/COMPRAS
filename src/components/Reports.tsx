@@ -791,6 +791,9 @@ export function Reports() {
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Descuento
                 </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ganancia
+                </th>
                 <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
                 </th>
@@ -801,6 +804,18 @@ export function Reports() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {getFilteredSales().slice(0, 10).map((sale) => (
+                // Calcular ganancia de la venta
+                const saleProfit = sale.sale_items?.reduce((itemSum, item) => {
+                  const product = products.find(p => p.id === item.product_id);
+                  if (!product) return itemSum;
+                  const itemProfit = (item.unit_price - product.cost) * item.quantity;
+                  return itemSum + itemProfit;
+                }, 0) || 0;
+                
+                // Ajustar ganancia por descuento aplicado
+                const finalProfit = saleProfit - (sale.discount_amount || 0);
+                const isProfitable = finalProfit >= 0;
+                
                 <tr key={sale.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
@@ -894,6 +909,19 @@ export function Reports() {
                       </div>
                     ) : (
                       <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    <div className={`font-medium ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                      ${finalProfit.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {isProfitable ? 'Ganancia' : 'Pérdida'}
+                    </div>
+                    {!isProfitable && (
+                      <div className="text-xs text-red-500 font-medium">
+                        ⚠️ Descuento excesivo
+                      </div>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
