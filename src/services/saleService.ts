@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Sale, SaleItem, CartItem, PaymentReceipt } from '../types';
+import type { Sale, SaleItem, CartItem } from '../types';
 
 export const saleService = {
   async getAll(): Promise<Sale[]> {

@@ -61,7 +61,7 @@ export function Reports() {
     }
   };
 
-  const handleEditReport = (report: Report) => {
+      alert('¡Venta procesada exitosamente!');
     setEditingReport(report);
     setShowForm(true);
   };
