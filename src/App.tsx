@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { Layout } from './components/Layout';
 import { AuthForm } from './components/AuthForm';
-import { Dashboard } from './components/Dashboard';
+import Dashboard from './components/Dashboard';
 import { ProductManagement } from './components/ProductManagement';
 import { CustomerManagement } from './components/CustomerManagement';
 import { SalesManagement } from './components/SalesManagement';
