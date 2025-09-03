@@ -29,6 +29,8 @@ export function SalesManagement() {
     name: '',
     email: ''
   });
+  const [discountType, setDiscountType] = useState<'none' | 'amount' | 'percentage'>('none');
+  const [discountValue, setDiscountValue] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountReceived, setAmountReceived] = useState('');
   const [loading, setLoading] = useState(false);
@@ -127,11 +129,21 @@ export function SalesManagement() {
 
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    const total = subtotal;
+    
+    // Calcular descuento
+    let discountAmount = 0;
+    if (discountType === 'amount') {
+      discountAmount = parseFloat(discountValue) || 0;
+    } else if (discountType === 'percentage') {
+      const percentage = parseFloat(discountValue) || 0;
+      discountAmount = (subtotal * percentage) / 100;
+    }
+    
+    const total = Math.max(0, subtotal - discountAmount);
     const received = parseFloat(amountReceived) || 0;
     const change = received > total ? received - total : 0;
     
-    return { subtotal, total, received, change };
+    return { subtotal, total, received, change, discountAmount };
   };
 
   const processSale = async () => {
@@ -147,6 +159,9 @@ export function SalesManagement() {
         customer_name: customerInfo.name,
         customer_email: customerInfo.email,
         payment_method: paymentMethod,
+        discount_type: discountType,
+        discount_amount: discountType === 'amount' ? parseFloat(discountValue) || 0 : 0,
+        discount_percentage: discountType === 'percentage' ? parseFloat(discountValue) || 0 : 0,
         amount_received: parseFloat(amountReceived) || 0,
         change_amount: calculateTotals().change
       });
@@ -156,6 +171,8 @@ export function SalesManagement() {
       setSelectedCustomer(null);
       setCustomerInfo({ name: '', email: '' });
       setSearchTerm('');
+      setDiscountType('none');
+      setDiscountValue('');
       setAmountReceived('');
       await loadProducts(); // Recargar productos para actualizar stock
       
@@ -168,6 +185,7 @@ export function SalesManagement() {
   };
 
   const { subtotal, total, received, change } = calculateTotals();
+  const { discountAmount } = calculateTotals();
 
   return (
     <div className="space-y-6">
@@ -425,11 +443,57 @@ export function SalesManagement() {
           {/* Resumen */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Resumen de Venta</h2>
+            
+            {/* Descuentos */}
+            <div className="mb-6 space-y-4">
+              <h3 className="text-sm font-medium text-gray-700">Descuentos</h3>
+              <div className="space-y-3">
+                <select
+                  value={discountType}
+                  onChange={(e) => {
+                    setDiscountType(e.target.value as 'none' | 'amount' | 'percentage');
+                    setDiscountValue('');
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="none">Sin descuento</option>
+                  <option value="amount">Descuento fijo ($)</option>
+                  <option value="percentage">Descuento porcentual (%)</option>
+                </select>
+                
+                {discountType !== 'none' && (
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                      {discountType === 'amount' ? '$' : '%'}
+                    </span>
+                    <input
+                      type="number"
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(e.target.value)}
+                      step={discountType === 'amount' ? '0.01' : '1'}
+                      min="0"
+                      max={discountType === 'percentage' ? '100' : undefined}
+                      className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder={discountType === 'amount' ? '0.00' : '0'}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Subtotal:</span>
                 <span className="font-medium">${subtotal.toLocaleString()}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-red-600">
+                    Descuento {discountType === 'percentage' ? `(${discountValue}%)` : ''}:
+                  </span>
+                  <span className="font-medium text-red-600">-${discountAmount.toLocaleString()}</span>
+                </div>
+              )}
               <div className="border-t border-gray-200 pt-3">
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total:</span>

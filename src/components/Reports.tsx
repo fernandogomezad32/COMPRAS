@@ -235,13 +235,19 @@ export function Reports() {
     const salesData = [
       ['VENTAS DETALLADAS'],
       [],
-      ['Fecha', 'Cliente', 'Tipo Cliente', 'Email', 'Método Pago', 'Estado', 'Subtotal', 'Total', 'Recibido', 'Cambio', 'Productos']
+      ['Fecha', 'Cliente', 'Tipo Cliente', 'Email', 'Método Pago', 'Estado', 'Subtotal', 'Descuento', 'Total', 'Recibido', 'Cambio', 'Productos']
     ];
     
     filteredSales.forEach(sale => {
       const productsText = sale.sale_items?.map(item => 
         `${item.product?.name || 'Producto eliminado'} x${item.quantity}`
       ).join(', ') || 'Sin productos';
+      
+      const discountText = sale.discount_type === 'none' || !sale.discount_amount 
+        ? '0' 
+        : sale.discount_type === 'percentage' 
+          ? `${sale.discount_percentage}% ($${sale.discount_amount})`
+          : `$${sale.discount_amount}`;
       
       salesData.push([
         format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es }),
@@ -251,6 +257,7 @@ export function Reports() {
         sale.payment_method,
         sale.status === 'completed' ? 'Completada' : sale.status === 'pending' ? 'Pendiente' : 'Cancelada',
         sale.subtotal,
+        discountText,
         sale.total,
         sale.amount_received || 0,
         sale.change_amount || 0,
@@ -781,6 +788,9 @@ export function Reports() {
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Subtotal
                 </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Descuento
+                </th>
                 <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
                 </th>
@@ -870,6 +880,21 @@ export function Reports() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
                     ${sale.subtotal.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    {sale.discount_amount > 0 ? (
+                      <div className="text-red-600 font-medium">
+                        {sale.discount_type === 'percentage' 
+                          ? `${sale.discount_percentage}%` 
+                          : `$${sale.discount_amount.toLocaleString()}`
+                        }
+                        <div className="text-xs text-gray-500">
+                          -${sale.discount_amount.toLocaleString()}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
                     ${sale.total.toLocaleString()}

@@ -128,6 +128,9 @@ export type Database = {
           total: number;
           subtotal: number;
           tax: number;
+          discount_amount: number;
+          discount_percentage: number;
+          discount_type: string;
           customer_name: string;
           customer_email: string;
           customer_id: string | null;
@@ -143,6 +146,9 @@ export type Database = {
           total: number;
           subtotal: number;
           tax?: number;
+          discount_amount?: number;
+          discount_percentage?: number;
+          discount_type?: string;
           customer_name?: string;
           customer_email?: string;
           customer_id?: string | null;
@@ -158,6 +164,9 @@ export type Database = {
           total?: number;
           subtotal?: number;
           tax?: number;
+          discount_amount?: number;
+          discount_percentage?: number;
+          discount_type?: string;
           customer_name?: string;
           customer_email?: string;
           customer_id?: string | null;

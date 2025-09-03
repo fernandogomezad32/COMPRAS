@@ -44,6 +44,9 @@ export interface Sale {
   total: number;
   subtotal: number;
   tax: number;
+  discount_amount: number;
+  discount_percentage: number;
+  discount_type: 'none' | 'amount' | 'percentage';
   customer_name: string;
   customer_email: string;
   customer_id: string | null;

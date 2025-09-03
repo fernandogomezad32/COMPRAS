@@ -43,14 +43,37 @@ export const saleService = {
     customer_name: string;
     customer_email: string;
     payment_method: string;
+    discount_type?: 'none' | 'amount' | 'percentage';
+    discount_amount?: number;
+    discount_percentage?: number;
     amount_received?: number;
     change_amount?: number;
   }): Promise<Sale> {
-    const { items, customer_id, customer_name, customer_email, payment_method, amount_received = 0, change_amount = 0 } = saleData;
+    const { 
+      items, 
+      customer_id, 
+      customer_name, 
+      customer_email, 
+      payment_method, 
+      discount_type = 'none',
+      discount_amount = 0,
+      discount_percentage = 0,
+      amount_received = 0, 
+      change_amount = 0 
+    } = saleData;
     
     // Calcular totales
     const subtotal = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    const total = subtotal;
+    
+    // Calcular descuento
+    let discountValue = 0;
+    if (discount_type === 'amount') {
+      discountValue = discount_amount;
+    } else if (discount_type === 'percentage') {
+      discountValue = (subtotal * discount_percentage) / 100;
+    }
+    
+    const total = Math.max(0, subtotal - discountValue);
 
     // Crear la venta
     const { data: sale, error: saleError } = await supabase
@@ -59,6 +82,9 @@ export const saleService = {
         total,
         subtotal,
         tax: 0,
+        discount_amount: discountValue,
+        discount_percentage: discount_type === 'percentage' ? discount_percentage : 0,
+        discount_type,
         customer_id,
         customer_name,
         customer_email,
