@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Search, FileText, Download, Eye, Calendar, User, CreditCard } from 'lucide-react';
+import { Search, FileText, Download, Eye, Calendar, User, CreditCard, Settings } from 'lucide-react';
 import { saleService } from '../services/saleService';
 import { invoiceService } from '../services/invoiceService';
+import { InvoiceConfigForm } from './InvoiceConfigForm';
 import type { Sale } from '../types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -12,6 +13,7 @@ export function InvoiceSearch() {
   const [foundSale, setFoundSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfig, setShowConfig] = useState(false);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +46,10 @@ export function InvoiceSearch() {
 
   const handleDownloadInvoice = () => {
     if (foundSale) {
-      invoiceService.generateInvoice(foundSale);
+      invoiceService.generateInvoice(foundSale).catch(error => {
+        console.error('Error generating invoice:', error);
+        alert('Error al generar la factura');
+      });
     }
   };
 
@@ -62,6 +67,13 @@ export function InvoiceSearch() {
         <p className="text-gray-600 mt-1">Busca ventas por código de barras o número de factura</p>
       </div>
 
+        <button
+          onClick={() => setShowConfig(true)}
+          className="bg-gray-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors flex items-center space-x-2"
+        >
+          <Settings className="h-4 w-4" />
+          <span>Configurar Facturas</span>
+        </button>
       {/* Formulario de búsqueda */}
       <div className="bg-white rounded-xl shadow-md p-6">
         <form onSubmit={handleSearch} className="space-y-4">
@@ -352,6 +364,14 @@ export function InvoiceSearch() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de configuración */}
+      {showConfig && (
+        <InvoiceConfigForm
+          onSubmit={() => setShowConfig(false)}
+          onCancel={() => setShowConfig(false)}
+        />
       )}
     </div>
   );

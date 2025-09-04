@@ -180,7 +180,7 @@ export function SalesManagement() {
       // Generar y descargar factura automáticamente
       const saleWithDetails = await saleService.getById(newSale.id);
       if (saleWithDetails) {
-        invoiceService.generateInvoice(saleWithDetails);
+        await invoiceService.generateInvoice(saleWithDetails);
       }
       
       alert('¡Venta procesada exitosamente! La factura se ha descargado automáticamente.');

@@ -144,3 +144,30 @@ export interface Return {
   product?: Product;
   customer?: Customer;
 }
+
+export interface InvoiceConfig {
+  id: string;
+  company_name: string;
+  company_address: string;
+  company_city: string;
+  company_phone: string;
+  company_email: string;
+  company_website?: string;
+  company_tax_id?: string;
+  company_logo_url?: string;
+  paper_size: 'A4' | 'Letter' | 'A5' | 'Thermal';
+  currency: string;
+  currency_symbol: string;
+  tax_rate: number;
+  include_tax: boolean;
+  show_barcode: boolean;
+  show_company_logo: boolean;
+  footer_text: string;
+  terms_and_conditions: string;
+  invoice_prefix: string;
+  barcode_position: 'top' | 'bottom';
+  font_size: 'small' | 'medium' | 'large';
+  language: 'es' | 'en';
+  created_at: string;
+  updated_at: string;
+}
