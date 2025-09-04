@@ -199,7 +199,8 @@ export const installmentService = {
 
     const paymentNumber = (count || 0) + 1;
 
-    const { error } = await supabase
+    // Insertar el pago
+    const { error: paymentError } = await supabase
       .from('installment_payments')
       .insert({
         installment_sale_id: installmentSaleId,
@@ -211,7 +212,64 @@ export const installmentService = {
         created_by: user.id
       });
 
-    if (error) throw error;
+    if (paymentError) throw paymentError;
+
+    // Obtener la venta por abonos actual
+    const { data: installmentSale, error: fetchError } = await supabase
+      .from('installment_sales')
+      .select('*')
+      .eq('id', installmentSaleId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Calcular nuevos valores
+    const newPaidAmount = installmentSale.paid_amount + paymentData.amount;
+    const newRemainingAmount = installmentSale.total_amount - newPaidAmount;
+    const newPaidInstallments = installmentSale.paid_installments + 1;
+
+    // Calcular próxima fecha de pago
+    let nextPaymentDate: string;
+    let newStatus = installmentSale.status;
+
+    if (newRemainingAmount <= 0 || newPaidInstallments >= installmentSale.installment_count) {
+      // Venta completada
+      nextPaymentDate = paymentData.payment_date; // Usar la fecha del último pago
+      newStatus = 'completed';
+    } else {
+      // Calcular siguiente fecha de pago
+      const currentPaymentDate = new Date(paymentData.payment_date);
+      const nextDate = new Date(currentPaymentDate);
+      
+      switch (installmentSale.installment_type) {
+        case 'daily':
+          nextDate.setDate(nextDate.getDate() + 1);
+          break;
+        case 'weekly':
+          nextDate.setDate(nextDate.getDate() + 7);
+          break;
+        case 'monthly':
+          nextDate.setMonth(nextDate.getMonth() + 1);
+          break;
+      }
+      
+      nextPaymentDate = nextDate.toISOString().split('T')[0];
+    }
+
+    // Actualizar la venta por abonos
+    const { error: updateError } = await supabase
+      .from('installment_sales')
+      .update({
+        paid_amount: newPaidAmount,
+        remaining_amount: Math.max(0, newRemainingAmount),
+        paid_installments: newPaidInstallments,
+        next_payment_date: nextPaymentDate,
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', installmentSaleId);
+
+    if (updateError) throw updateError;
   },
 
   async updateStatus(id: string, status: InstallmentSale['status']): Promise<InstallmentSale> {
