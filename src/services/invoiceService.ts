@@ -303,12 +303,12 @@ export const invoiceService = {
     doc.setTextColor(80, 80, 80);
     
     const paymentMethods: Record<string, string> = {
-      cash: config.language === 'es' ? '💵 Efectivo' : '💵 Cash',
-      card: config.language === 'es' ? '💳 Tarjeta' : '💳 Card',
-      nequi: '📱 NEQUI',
-      daviplata: '📱 DAVIPLATA',
-      bancolombia: '📱 BANCOLOMBIA',
-      transfer: config.language === 'es' ? '📱 Transferencia' : '📱 Transfer'
+      cash: config.language === 'es' ? 'Efectivo' : 'Cash',
+      card: config.language === 'es' ? 'Tarjeta' : 'Card',
+      nequi: 'NEQUI',
+      daviplata: 'DAVIPLATA',
+      bancolombia: 'BANCOLOMBIA',
+      transfer: config.language === 'es' ? 'Transferencia' : 'Transfer'
     };
     
     const methodLabel = config.language === 'es' ? 'Método de pago:' : 'Payment method:';
