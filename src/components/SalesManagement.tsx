@@ -154,7 +154,7 @@ export function SalesManagement() {
     setError(null);
 
     try {
-      await saleService.create({
+      const newSale = await saleService.create({
         items: cart,
         customer_id: selectedCustomer?.id,
         customer_name: customerInfo.name,
