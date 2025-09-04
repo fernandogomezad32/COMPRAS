@@ -246,16 +246,20 @@ export const invoiceService = {
       transfer: 'Transferencia'
     };
     
-    const paymentInfo = [`Metodo: ${paymentMethods[sale.payment_method] || sale.payment_method}`];
+    // Información de pago en líneas separadas para mejor legibilidad
+    doc.text(`Metodo: ${paymentMethods[sale.payment_method] || sale.payment_method}`, margin + 25, yPosition);
     
     if (sale.amount_received > 0) {
-      paymentInfo.push(`Recibido: $${sale.amount_received.toLocaleString()}`);
+      yPosition += 4;
+      doc.text(`Monto recibido: $${sale.amount_received.toLocaleString()}`, margin + 25, yPosition);
+      
       if (sale.change_amount > 0) {
-        paymentInfo.push(`Cambio: $${sale.change_amount.toLocaleString()}`);
+        yPosition += 4;
+        doc.setTextColor(255, 140, 0); // Color naranja para el cambio
+        doc.text(`Cambio devuelto: $${sale.change_amount.toLocaleString()}`, margin + 25, yPosition);
+        doc.setTextColor(80, 80, 80); // Volver al color normal
       }
     }
-    
-    doc.text(paymentInfo.join(' | '), margin + 25, yPosition);
 
     // === CÓDIGO DE BARRAS OPTIMIZADO ===
     yPosition += 12;
