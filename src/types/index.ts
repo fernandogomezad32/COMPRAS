@@ -171,3 +171,48 @@ export interface InvoiceConfig {
   created_at: string;
   updated_at: string;
 }
+
+export interface InstallmentSale {
+  id: string;
+  customer_id: string;
+  total_amount: number;
+  paid_amount: number;
+  remaining_amount: number;
+  installment_type: 'daily' | 'weekly' | 'monthly';
+  installment_amount: number;
+  installment_count: number;
+  paid_installments: number;
+  start_date: string;
+  next_payment_date: string;
+  status: 'active' | 'completed' | 'cancelled' | 'overdue';
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer;
+  installment_sale_items?: InstallmentSaleItem[];
+  installment_payments?: InstallmentPayment[];
+}
+
+export interface InstallmentPayment {
+  id: string;
+  installment_sale_id: string;
+  payment_number: number;
+  amount: number;
+  payment_date: string;
+  payment_method: 'cash' | 'card' | 'transfer' | 'nequi' | 'daviplata' | 'bancolombia';
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface InstallmentSaleItem {
+  id: string;
+  installment_sale_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  created_at: string;
+  product?: Product;
+}

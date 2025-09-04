@@ -11,6 +11,7 @@ import { SalesManagement } from './components/SalesManagement';
 import { Reports } from './components/Reports';
 import { ReturnsManagement } from './components/ReturnsManagement';
 import { InvoiceSearch } from './components/InvoiceSearch';
+import { InstallmentManagement } from './components/InstallmentManagement';
 
 function App() {
   const { user, loading } = useAuth();
@@ -46,6 +47,8 @@ function App() {
         return <Reports />;
       case 'returns':
         return <ReturnsManagement />;
+      case 'installments':
+        return <InstallmentManagement />;
       case 'invoices':
         return <InvoiceSearch />;
       default:
