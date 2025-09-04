@@ -21,6 +21,7 @@ import { customerService } from '../services/customerService';
 import { saleService } from '../services/saleService';
 import { categoryService } from '../services/categoryService';
 import { installmentService } from '../services/installmentService';
+import { InstallmentSalesReport } from './InstallmentSalesReport';
 import { reportService } from '../services/reportService';
 import type { Sale, Product, Customer, Report, InstallmentSale } from '../types';
 import { ReportForm } from './ReportForm';
