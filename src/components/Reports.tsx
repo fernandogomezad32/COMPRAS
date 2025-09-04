@@ -21,7 +21,6 @@ import { customerService } from '../services/customerService';
 import { categoryService } from '../services/categoryService';
 import { installmentService } from '../services/installmentService';
 import { reportService } from '../services/reportService';
-import { installmentService } from '../services/installmentService';
 import type { Sale, Product, Customer, Report, InstallmentSale } from '../types';
 import { ReportForm } from './ReportForm';
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns';
