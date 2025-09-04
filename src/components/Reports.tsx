@@ -187,6 +187,11 @@ export function Reports() {
   const exportToExcel = () => {
     const filteredSales = getFilteredSales();
     const soldProducts = stats.allSoldProducts;
+    const lowStockProducts = products.filter(p => p.stock_quantity <= p.min_stock);
+    const categoriesWithProducts = categories.map(cat => ({
+      ...cat,
+      productCount: products.filter(p => p.category_id === cat.id).length
+    }));
     
     // Crear workbook
     const wb = XLSX.utils.book_new();
@@ -202,6 +207,10 @@ export function Reports() {
       ['Ingresos totales:', `$${stats.revenue.toLocaleString()}`],
       ['Ganancia total:', `$${stats.profit.toLocaleString()}`],
       ['Productos vendidos:', soldProducts.length],
+      ['Total productos en inventario:', products.length],
+      ['Productos con stock bajo:', lowStockProducts.length],
+      ['Total clientes:', customerStats?.totalCustomers || 0],
+      ['Total categorías:', categories.length],
       []
     ];
     
@@ -212,19 +221,25 @@ export function Reports() {
     const productsData = [
       ['PRODUCTOS VENDIDOS'],
       [],
-      ['Producto', 'Categoría', 'Precio Unitario', 'Cantidad Vendida', 'Stock Actual', 'Ingresos Generados', 'Ganancia Total']
+      ['Producto', 'Descripción', 'Categoría', 'Proveedor', 'Precio Unitario', 'Costo', 'Cantidad Vendida', 'Stock Actual', 'Stock Mínimo', 'Ingresos Generados', 'Ganancia Total', 'Estado Stock']
     ];
     
     soldProducts.forEach(product => {
       const profit = (product.price - product.cost) * product.soldQuantity;
+      const stockStatus = product.stock_quantity <= product.min_stock ? 'STOCK BAJO' : 'NORMAL';
       productsData.push([
         product.name,
+        product.description || '',
         product.category?.name || 'Sin categoría',
+        product.supplier?.name || 'Sin proveedor',
         product.price,
+        product.cost,
         product.soldQuantity,
         product.stock_quantity,
+        product.min_stock,
         product.revenue,
-        profit
+        profit,
+        stockStatus
       ]);
     });
     
@@ -235,7 +250,7 @@ export function Reports() {
     const salesData = [
       ['VENTAS DETALLADAS'],
       [],
-      ['Fecha', 'Cliente', 'Tipo Cliente', 'Email', 'Método Pago', 'Estado', 'Subtotal', 'Descuento', 'Ganancia', 'Total', 'Recibido', 'Cambio', 'Productos']
+      ['Fecha', 'Número Factura', 'Código Barras', 'Cliente', 'Tipo Cliente', 'Email', 'Teléfono', 'Método Pago', 'Estado', 'Subtotal', 'Descuento', 'Ganancia', 'Total', 'Recibido', 'Cambio', 'Productos', 'Devoluciones']
     ];
     
     filteredSales.forEach(sale => {
@@ -259,11 +274,22 @@ export function Reports() {
           ? `${sale.discount_percentage}% ($${sale.discount_amount})`
           : `$${sale.discount_amount}`;
       
+      // Información de devoluciones
+      const totalReturned = sale.sale_items?.reduce((sum, item) => {
+        return sum + (item.returns?.reduce((returnSum, ret) => 
+          returnSum + ret.quantity_returned, 0) || 0);
+      }, 0) || 0;
+      
+      const returnsText = totalReturned > 0 ? `${totalReturned} productos devueltos` : 'Sin devoluciones';
+      
       salesData.push([
         format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es }),
+        sale.invoice_number || 'Sin número',
+        sale.invoice_barcode || 'Sin código',
         sale.customer?.name || sale.customer_name || 'Cliente anónimo',
         sale.customer ? (sale.customer.customer_type === 'business' ? 'Empresa' : 'Individual') : 'Anónimo',
         sale.customer?.email || sale.customer_email || '',
+        sale.customer?.phone || '',
         sale.payment_method,
         sale.status === 'completed' ? 'Completada' : sale.status === 'pending' ? 'Pendiente' : 'Cancelada',
         sale.subtotal,
@@ -272,15 +298,113 @@ export function Reports() {
         sale.total,
         sale.amount_received || 0,
         sale.change_amount || 0,
-        productsText
+        productsText,
+        returnsText
       ]);
     });
     
     const ws3 = XLSX.utils.aoa_to_sheet(salesData);
     XLSX.utils.book_append_sheet(wb, ws3, 'Ventas Detalladas');
     
+    // Hoja 4: Inventario completo
+    const inventoryData = [
+      ['INVENTARIO COMPLETO'],
+      [],
+      ['Producto', 'Descripción', 'Categoría', 'Proveedor', 'Código Proveedor', 'Código Barras', 'Precio Venta', 'Costo', 'Stock Actual', 'Stock Mínimo', 'Estado Stock', 'Estado Producto', 'Fecha Creación']
+    ];
+    
+    products.forEach(product => {
+      const stockStatus = product.stock_quantity <= product.min_stock ? 'STOCK BAJO' : 'NORMAL';
+      inventoryData.push([
+        product.name,
+        product.description || '',
+        product.category?.name || 'Sin categoría',
+        product.supplier?.name || 'Sin proveedor',
+        product.supplier_code || '',
+        product.barcode || '',
+        product.price,
+        product.cost,
+        product.stock_quantity,
+        product.min_stock,
+        stockStatus,
+        product.status === 'active' ? 'ACTIVO' : 'INACTIVO',
+        format(new Date(product.created_at), 'dd/MM/yyyy', { locale: es })
+      ]);
+    });
+    
+    const ws4 = XLSX.utils.aoa_to_sheet(inventoryData);
+    XLSX.utils.book_append_sheet(wb, ws4, 'Inventario Completo');
+    
+    // Hoja 5: Clientes
+    const customersData = [
+      ['CLIENTES'],
+      [],
+      ['Nombre', 'Tipo', 'Email', 'Teléfono', 'Ciudad', 'Dirección', 'RFC/ID Fiscal', 'Fecha Registro', 'Notas']
+    ];
+    
+    customerStats?.topCustomers?.forEach((customer: any) => {
+      customersData.push([
+        customer.name,
+        customer.customer_type === 'business' ? 'Empresa' : 'Individual',
+        customer.email || '',
+        customer.phone || '',
+        customer.city || '',
+        customer.address || '',
+        customer.tax_id || '',
+        format(new Date(customer.created_at), 'dd/MM/yyyy', { locale: es }),
+        customer.notes || ''
+      ]);
+    });
+    
+    const ws5 = XLSX.utils.aoa_to_sheet(customersData);
+    XLSX.utils.book_append_sheet(wb, ws5, 'Clientes');
+    
+    // Hoja 6: Categorías
+    const categoriesData = [
+      ['CATEGORÍAS'],
+      [],
+      ['Nombre', 'Descripción', 'Productos Asociados', 'Fecha Creación']
+    ];
+    
+    categoriesWithProducts.forEach(category => {
+      categoriesData.push([
+        category.name,
+        category.description || '',
+        category.productCount,
+        format(new Date(category.created_at), 'dd/MM/yyyy', { locale: es })
+      ]);
+    });
+    
+    const ws6 = XLSX.utils.aoa_to_sheet(categoriesData);
+    XLSX.utils.book_append_sheet(wb, ws6, 'Categorías');
+    
+    // Hoja 7: Productos con stock bajo
+    if (lowStockProducts.length > 0) {
+      const lowStockData = [
+        ['PRODUCTOS CON STOCK BAJO'],
+        [],
+        ['Producto', 'Categoría', 'Stock Actual', 'Stock Mínimo', 'Diferencia', 'Precio', 'Proveedor', 'Estado']
+      ];
+      
+      lowStockProducts.forEach(product => {
+        const difference = product.min_stock - product.stock_quantity;
+        lowStockData.push([
+          product.name,
+          product.category?.name || 'Sin categoría',
+          product.stock_quantity,
+          product.min_stock,
+          difference,
+          product.price,
+          product.supplier?.name || 'Sin proveedor',
+          product.status === 'active' ? 'ACTIVO' : 'INACTIVO'
+        ]);
+      });
+      
+      const ws7 = XLSX.utils.aoa_to_sheet(lowStockData);
+      XLSX.utils.book_append_sheet(wb, ws7, 'Stock Bajo');
+    }
     // Generar nombre del archivo
-    const fileName = `reporte_ventas_${dateFilter}_${format(new Date(), 'yyyy-MM-dd_HH-mm', { locale: es })}.xlsx`;
+    const fileName = `reporte_completo_ventaspro_${dateFilter}_${format(new Date(), 'yyyy-MM-dd_HH-mm', { locale: es })}.xlsx`;
     
     // Descargar archivo
     XLSX.writeFile(wb, fileName);
