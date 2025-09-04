@@ -19,6 +19,7 @@ import {
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
 import { saleService } from '../services/saleService';
+import { SaleForm } from './SaleForm';
 import { categoryService } from '../services/categoryService';
 import { installmentService } from '../services/installmentService';
 import { InstallmentSalesReport } from './InstallmentSalesReport';
