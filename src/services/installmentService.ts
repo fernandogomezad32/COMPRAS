@@ -204,7 +204,7 @@ export const installmentService = {
         notes: paymentData.notes || '',
         created_by: user.id
       })
-      .select()
+      .select('id, installment_sale_id, payment_number, amount, payment_date, payment_method, notes, created_by, created_at')
       .single();
 
     if (error) throw error;
