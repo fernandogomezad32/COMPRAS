@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Sale, SaleItem, CartItem } from '../types';
+import { invoiceService } from './invoiceService';
 
 export const saleService = {
   async getAll(): Promise<Sale[]> {
@@ -37,6 +38,14 @@ export const saleService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async searchByBarcode(barcode: string): Promise<Sale | null> {
+    return await invoiceService.searchByBarcode(barcode);
+  },
+
+  async searchByInvoiceNumber(invoiceNumber: string): Promise<Sale | null> {
+    return await invoiceService.searchByInvoiceNumber(invoiceNumber);
   },
 
   async create(saleData: {
@@ -115,7 +124,22 @@ export const saleService = {
 
     if (itemsError) throw itemsError;
 
-    return sale;
+    // Retornar la venta con todos los detalles
+    const { data: completeSale, error: fetchError } = await supabase
+      .from('sales')
+      .select(`
+        *,
+        customer:customers(*),
+        sale_items(
+          *,
+          product:products(*)
+        )
+      `)
+      .eq('id', sale.id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    return completeSale;
   },
 
   async update(id: string, updates: Partial<Sale>): Promise<Sale> {

@@ -33,6 +33,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
     { id: 'suppliers', name: 'Proveedores', icon: Building },
     { id: 'sales', name: 'Ventas', icon: ShoppingCart },
     { id: 'returns', name: 'Devoluciones', icon: RotateCcw },
+    { id: 'invoices', name: 'Facturas', icon: FileText },
     { id: 'reports', name: 'Reportes', icon: BarChart3 },
   ];
 

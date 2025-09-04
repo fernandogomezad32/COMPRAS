@@ -45,6 +45,8 @@ function App() {
         return <Reports />;
       case 'returns':
         return <ReturnsManagement />;
+      case 'invoices':
+        return <InvoiceSearch />;
       default:
         return <Dashboard />;
     }

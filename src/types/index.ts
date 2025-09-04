@@ -56,6 +56,9 @@ export interface Sale {
   created_at: string;
   amount_received: number;
   change_amount: number;
+  invoice_number: string;
+  invoice_barcode: string;
+  invoice_generated_at: string;
   sale_items?: SaleItem[];
   customer?: Customer;
 }

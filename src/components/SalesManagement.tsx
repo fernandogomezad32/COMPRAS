@@ -14,6 +14,7 @@ import {
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
 import { saleService } from '../services/saleService';
+import { invoiceService } from '../services/invoiceService';
 import type { Product, CartItem, Customer } from '../types';
 
 export function SalesManagement() {
@@ -176,7 +177,13 @@ export function SalesManagement() {
       setAmountReceived('');
       await loadProducts(); // Recargar productos para actualizar stock
       
-      alert('¡Venta procesada exitosamente!');
+      // Generar y descargar factura automáticamente
+      const saleWithDetails = await saleService.getById(newSale.id);
+      if (saleWithDetails) {
+        invoiceService.generateInvoice(saleWithDetails);
+      }
+      
+      alert('¡Venta procesada exitosamente! La factura se ha descargado automáticamente.');
     } catch (err: any) {
       setError(err.message || 'Error al procesar la venta');
     } finally {
