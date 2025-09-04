@@ -17,6 +17,7 @@ import {
 import { saleService } from '../services/saleService';
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
+import { categoryService } from '../services/categoryService';
 import { reportService } from '../services/reportService';
 import type { Sale, Product, Customer, Report } from '../types';
 import { ReportForm } from './ReportForm';
@@ -28,6 +29,7 @@ import * as XLSX from 'xlsx';
 export function Reports() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [customerStats, setCustomerStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -44,14 +46,16 @@ export function Reports() {
 
   const loadData = async () => {
     try {
-      const [salesData, productsData, customerStatsData, reportsData] = await Promise.all([
+      const [salesData, productsData, categoriesData, customerStatsData, reportsData] = await Promise.all([
         saleService.getAll(),
         productService.getAll(),
+        categoryService.getAll(),
         customerService.getStats(),
         reportService.getAll()
       ]);
       setSales(salesData);
       setProducts(productsData);
+      setCategories(categoriesData);
       setCustomerStats(customerStatsData);
       setReports(reportsData);
     } catch (error) {
