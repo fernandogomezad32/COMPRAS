@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
+import { saleService } from '../services/saleService';
 import { categoryService } from '../services/categoryService';
 import { installmentService } from '../services/installmentService';
 import { reportService } from '../services/reportService';
