@@ -10,6 +10,7 @@ import { CategoryManagement } from './components/CategoryManagement';
 import { SalesManagement } from './components/SalesManagement';
 import { Reports } from './components/Reports';
 import { ReturnsManagement } from './components/ReturnsManagement';
+import { InvoiceSearch } from './components/InvoiceSearch';
 
 function App() {
   const { user, loading } = useAuth();
