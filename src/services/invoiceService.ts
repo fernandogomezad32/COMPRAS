@@ -110,19 +110,25 @@ export const invoiceService = {
     // Código de barras en la parte superior si está configurado
     if (config.show_barcode && config.barcode_position === 'top') {
       yPosition += 45;
+      
+      // Centrar el código de barras
       const canvas = document.createElement('canvas');
       JsBarcode(canvas, sale.invoice_barcode, {
         format: 'CODE128',
-        width: 1.5,
-        height: 30,
+        width: 2,
+        height: 40,
         displayValue: true,
-        fontSize: sizes.small,
-        textMargin: 3
+        fontSize: 12,
+        textMargin: 5,
+        textAlign: 'center'
       });
       
       const barcodeDataUrl = canvas.toDataURL('image/png');
-      doc.addImage(barcodeDataUrl, 'PNG', pageWidth - margin - 70, yPosition, 65, 15);
-      yPosition += 20;
+      const barcodeWidth = 100;
+      const barcodeX = (pageWidth - barcodeWidth) / 2; // Centrar horizontalmente
+      
+      doc.addImage(barcodeDataUrl, 'PNG', barcodeX, yPosition, barcodeWidth, 25);
+      yPosition += 30;
     } else {
       yPosition += 40;
     }
@@ -331,24 +337,40 @@ export const invoiceService = {
     if (config.show_barcode && config.barcode_position === 'bottom') {
       yPosition += 10;
       
+      // Título para el código de barras
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(sizes.normal);
+      doc.setTextColor(44, 62, 80);
+      const barcodeLabel = config.language === 'es' ? 'CÓDIGO DE BARRAS' : 'BARCODE';
+      doc.text(barcodeLabel, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 8;
+      
       // Generar código de barras
       const canvas = document.createElement('canvas');
       JsBarcode(canvas, sale.invoice_barcode, {
         format: 'CODE128',
-        width: 1.5,
+        width: 2,
         height: 40,
         displayValue: true,
-        fontSize: sizes.small,
+        fontSize: 12,
         textMargin: 5,
+        textAlign: 'center'
         textAlign: 'center'
       });
       
       const barcodeDataUrl = canvas.toDataURL('image/png');
-      const barcodeWidth = 80;
+      const barcodeWidth = 120;
       const barcodeX = (pageWidth - barcodeWidth) / 2; // Centrar
       
-      doc.addImage(barcodeDataUrl, 'PNG', barcodeX, yPosition, barcodeWidth, 20);
-      yPosition += 25;
+      doc.addImage(barcodeDataUrl, 'PNG', barcodeX, yPosition, barcodeWidth, 25);
+      
+      // Número del código de barras debajo
+      yPosition += 30;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(sizes.small);
+      doc.setTextColor(100, 100, 100);
+      doc.text(sale.invoice_barcode, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 5;
     }
 
     // === TÉRMINOS Y CONDICIONES ===
