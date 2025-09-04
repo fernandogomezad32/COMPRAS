@@ -38,7 +38,7 @@ export function Reports() {
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  const [activeTab, setActiveTab] = useState<'analytics' | 'saved'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'installments' | 'saved'>('analytics');
 
   useEffect(() => {
     loadData();
@@ -456,6 +456,19 @@ export function Reports() {
               <div className="flex items-center space-x-2">
                 <BarChart3 className="h-4 w-4" />
                 <span>Análisis</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('installments')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'installments'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-4 w-4" />
+                <span>Ventas por Abonos</span>
               </div>
             </button>
             <button
@@ -973,6 +986,14 @@ export function Reports() {
             )}
           </div>
         </>
+      )}
+
+      {activeTab === 'installments' && (
+        <InstallmentSalesReport 
+          dateFilter={dateFilter}
+          onEditSale={handleEditSale}
+          onDeleteSale={handleDeleteSale}
+        />
       )}
 
       {activeTab === 'saved' && (
