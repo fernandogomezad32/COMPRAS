@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import JsBarcode from 'jsbarcode';
+import { format } from 'date-fns';
 import { supabase } from '../lib/supabase';
 import { invoiceConfigService } from './invoiceConfigService';
 import type { Sale } from '../types';
@@ -442,14 +443,12 @@ export const invoiceService = {
         )
       `)
       .eq('invoice_barcode', barcode)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // No encontrado
-      }
       throw error;
     }
+    
     return data;
   },
 
@@ -466,14 +465,12 @@ export const invoiceService = {
         )
       `)
       .eq('invoice_number', invoiceNumber)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // No encontrado
-      }
       throw error;
     }
+    
     return data;
   }
 };
