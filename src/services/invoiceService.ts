@@ -15,433 +15,354 @@ export const invoiceService = {
     // Configuración de la página
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-    const margin = 20;
-    let yPosition = 25;
+    const margin = 15; // Reducido para más espacio
+    let yPosition = 20; // Posición inicial más alta
     
-    // Configurar tamaños de fuente según configuración
-    const fontSizes = {
-      small: { title: 18, subtitle: 14, header: 11, normal: 9, small: 8 },
-      medium: { title: 22, subtitle: 16, header: 12, normal: 10, small: 9 },
-      large: { title: 26, subtitle: 18, header: 14, normal: 12, small: 10 }
+    // Configurar tamaños de fuente optimizados para una página
+    const sizes = {
+      title: 16,
+      subtitle: 12,
+      header: 10,
+      normal: 9,
+      small: 8,
+      tiny: 7
     };
-    
-    const sizes = fontSizes[config.font_size];
 
-    // === HEADER DE LA EMPRESA ===
-    // Logo si está configurado
-    if (config.show_company_logo && config.company_logo_url) {
-      try {
-        // Aquí se podría cargar el logo, por ahora solo reservamos espacio
-        yPosition += 30;
-      } catch (error) {
-        console.warn('No se pudo cargar el logo');
-      }
-    }
-
+    // === HEADER COMPACTO ===
     // Nombre de la empresa
     doc.setFontSize(sizes.title);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(44, 62, 80); // Color azul oscuro
+    doc.setTextColor(44, 62, 80);
     doc.text(config.company_name, pageWidth / 2, yPosition, { align: 'center' });
     
-    yPosition += 8;
+    yPosition += 6;
     
-    // Información de contacto en una línea
-    doc.setFontSize(sizes.normal);
+    // Información de contacto compacta
+    doc.setFontSize(sizes.small);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100);
     
-    const contactInfo = [];
-    if (config.company_address) contactInfo.push(config.company_address);
-    if (config.company_city) contactInfo.push(config.company_city);
-    if (contactInfo.length > 0) {
-      doc.text(contactInfo.join(', '), pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 6;
+    const contactLine1 = [];
+    if (config.company_address) contactLine1.push(config.company_address);
+    if (config.company_city) contactLine1.push(config.company_city);
+    
+    if (contactLine1.length > 0) {
+      doc.text(contactLine1.join(', '), pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 4;
     }
     
-    const contactDetails = [];
-    if (config.company_phone) contactDetails.push(`Tel: ${config.company_phone}`);
-    if (config.company_email) contactDetails.push(`Email: ${config.company_email}`);
-    if (config.company_website) contactDetails.push(config.company_website);
+    const contactLine2 = [];
+    if (config.company_phone) contactLine2.push(`Tel: ${config.company_phone}`);
+    if (config.company_email) contactLine2.push(`Email: ${config.company_email}`);
     
-    if (contactDetails.length > 0) {
-      doc.text(contactDetails.join(' | '), pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 6;
+    if (contactLine2.length > 0) {
+      doc.text(contactLine2.join(' | '), pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 4;
     }
     
     if (config.company_tax_id) {
-      doc.text(`RFC/ID Fiscal: ${config.company_tax_id}`, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 6;
+      doc.text(`RFC: ${config.company_tax_id}`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 4;
     }
     
-    // Línea decorativa
-    yPosition += 10;
-    doc.setDrawColor(52, 152, 219); // Azul
-    doc.setLineWidth(1);
+    // Línea separadora
+    yPosition += 5;
+    doc.setDrawColor(52, 152, 219);
+    doc.setLineWidth(0.5);
     doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 15;
+    yPosition += 8;
 
-    // === SECCIÓN DE FACTURA ===
-    // Recuadro para información de factura
-    doc.setFillColor(248, 249, 250); // Gris muy claro
+    // === INFORMACIÓN DE FACTURA Y CLIENTE EN PARALELO ===
+    const leftColumnX = margin;
+    const rightColumnX = pageWidth - margin - 70;
+    const sectionHeight = 25;
+    
+    // Recuadro de información de factura (derecha)
+    doc.setFillColor(248, 249, 250);
     doc.setDrawColor(200, 200, 200);
-    doc.rect(pageWidth - margin - 80, yPosition - 5, 75, 35, 'FD');
+    doc.rect(rightColumnX, yPosition, 65, sectionHeight, 'FD');
     
     // Título FACTURA
     doc.setFontSize(sizes.subtitle);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(44, 62, 80);
-    const invoiceTitle = config.language === 'es' ? 'FACTURA' : 'INVOICE';
-    doc.text(invoiceTitle, pageWidth - margin - 42.5, yPosition + 5, { align: 'center' });
+    doc.text('FACTURA', rightColumnX + 32.5, yPosition + 6, { align: 'center' });
     
     // Información de la factura
-    doc.setFontSize(sizes.normal);
+    doc.setFontSize(sizes.small);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
     
-    const numberLabel = config.language === 'es' ? 'No.' : 'No.';
-    const dateLabel = config.language === 'es' ? 'Fecha' : 'Date';
-    const timeLabel = config.language === 'es' ? 'Hora' : 'Time';
-    
-    doc.text(`${numberLabel} ${sale.invoice_number}`, pageWidth - margin - 75, yPosition + 12);
-    doc.text(`${dateLabel}: ${new Date(sale.created_at).toLocaleDateString(config.language === 'es' ? 'es-ES' : 'en-US')}`, pageWidth - margin - 75, yPosition + 18);
-    doc.text(`${timeLabel}: ${new Date(sale.created_at).toLocaleTimeString(config.language === 'es' ? 'es-ES' : 'en-US', { hour: '2-digit', minute: '2-digit' })}`, pageWidth - margin - 75, yPosition + 24);
+    doc.text(`No. ${sale.invoice_number}`, rightColumnX + 2, yPosition + 12);
+    doc.text(`Fecha: ${new Date(sale.created_at).toLocaleDateString('es-ES')}`, rightColumnX + 2, yPosition + 16);
+    doc.text(`Hora: ${new Date(sale.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`, rightColumnX + 2, yPosition + 20);
 
-    // Código de barras en la parte superior si está configurado
-    if (config.show_barcode && config.barcode_position === 'top') {
-      yPosition += 45;
-      
-      // Centrar el código de barras
-      const canvas = document.createElement('canvas');
-      JsBarcode(canvas, sale.invoice_barcode, {
-        format: 'CODE128',
-        width: 2,
-        height: 40,
-        displayValue: true,
-        fontSize: 12,
-        textMargin: 5,
-        textAlign: 'center'
-      });
-      
-      const barcodeDataUrl = canvas.toDataURL('image/png');
-      const barcodeWidth = 100;
-      const barcodeX = (pageWidth - barcodeWidth) / 2; // Centrar horizontalmente
-      
-      doc.addImage(barcodeDataUrl, 'PNG', barcodeX, yPosition, barcodeWidth, 25);
-      yPosition += 30;
-    } else {
-      yPosition += 40;
-    }
-
-    // === INFORMACIÓN DEL CLIENTE ===
-    yPosition += 10;
-    
-    // Recuadro para cliente
+    // Información del cliente (izquierda)
     doc.setFillColor(248, 249, 250);
     doc.setDrawColor(200, 200, 200);
-    doc.rect(margin, yPosition, pageWidth - 2 * margin, 30, 'FD');
+    doc.rect(leftColumnX, yPosition, pageWidth - 2 * margin - 70, sectionHeight, 'FD');
     
     doc.setFontSize(sizes.header);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(44, 62, 80);
-    const clientLabel = config.language === 'es' ? 'FACTURAR A:' : 'BILL TO:';
-    doc.text(clientLabel, margin + 5, yPosition + 8);
+    doc.text('CLIENTE:', leftColumnX + 3, yPosition + 6);
     
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(sizes.normal);
     doc.setTextColor(60, 60, 60);
-    doc.text(sale.customer?.name || sale.customer_name || (config.language === 'es' ? 'Cliente Anónimo' : 'Anonymous Customer'), margin + 5, yPosition + 15);
+    doc.text(sale.customer?.name || sale.customer_name || 'Cliente Anonimo', leftColumnX + 3, yPosition + 12);
     
-    // Información adicional del cliente en columnas
-    let clientInfoY = yPosition + 21;
     if (sale.customer?.email || sale.customer_email) {
       doc.setFontSize(sizes.small);
-      doc.text(`Email: ${sale.customer?.email || sale.customer_email}`, margin + 5, clientInfoY);
-      clientInfoY += 5;
+      doc.text(`Email: ${sale.customer?.email || sale.customer_email}`, leftColumnX + 3, yPosition + 17);
     }
     
     if (sale.customer?.phone) {
       doc.setFontSize(sizes.small);
-      doc.text(`Tel: ${sale.customer.phone}`, margin + 5, clientInfoY);
-    }
-    
-    // Dirección en la columna derecha si existe
-    if (sale.customer?.address) {
-      doc.setFontSize(sizes.small);
-      doc.text(`Dir: ${sale.customer.address}`, margin + 100, yPosition + 15);
-      if (sale.customer.city) {
-        doc.text(`${sale.customer.city}${sale.customer.postal_code ? `, ${sale.customer.postal_code}` : ''}`, margin + 100, yPosition + 21);
-      }
+      doc.text(`Tel: ${sale.customer.phone}`, leftColumnX + 3, yPosition + 21);
     }
 
-    yPosition += 40;
+    yPosition += sectionHeight + 8;
 
-    // === TABLA DE PRODUCTOS ===
-    // Header de la tabla con mejor diseño
-    doc.setFillColor(52, 152, 219); // Azul
+    // === TABLA DE PRODUCTOS COMPACTA ===
+    // Header de la tabla
+    doc.setFillColor(52, 152, 219);
     doc.setDrawColor(52, 152, 219);
-    doc.rect(margin, yPosition, pageWidth - 2 * margin, 12, 'F');
+    doc.rect(margin, yPosition, pageWidth - 2 * margin, 8, 'F');
     
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(sizes.normal);
-    doc.setTextColor(255, 255, 255); // Blanco
+    doc.setFontSize(sizes.small);
+    doc.setTextColor(255, 255, 255);
     
-    const headers = config.language === 'es' 
-      ? ['PRODUCTO', 'CANT.', 'PRECIO UNIT.', 'TOTAL']
-      : ['PRODUCT', 'QTY.', 'UNIT PRICE', 'TOTAL'];
+    doc.text('PRODUCTO', margin + 2, yPosition + 5);
+    doc.text('CANT.', margin + 85, yPosition + 5, { align: 'center' });
+    doc.text('PRECIO', margin + 115, yPosition + 5, { align: 'center' });
+    doc.text('TOTAL', pageWidth - margin - 2, yPosition + 5, { align: 'right' });
     
-    doc.text(headers[0], margin + 5, yPosition + 8);
-    doc.text(headers[1], margin + 110, yPosition + 8, { align: 'center' });
-    doc.text(headers[2], margin + 135, yPosition + 8, { align: 'center' });
-    doc.text(headers[3], pageWidth - margin - 5, yPosition + 8, { align: 'right' });
-    
-    yPosition += 12;
+    yPosition += 8;
 
-    // Items de la venta con líneas alternadas
+    // Items de la venta (máximo espacio disponible)
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(sizes.normal);
+    doc.setFontSize(sizes.small);
     doc.setTextColor(60, 60, 60);
     
-    let itemsTotal = 0;
     let rowIndex = 0;
+    const maxRows = 12; // Limitar filas para que quepa todo
+    const itemsToShow = sale.sale_items?.slice(0, maxRows) || [];
     
-    if (sale.sale_items) {
-      sale.sale_items.forEach((item) => {
-        const itemTotal = item.unit_price * item.quantity;
-        itemsTotal += itemTotal;
-        
-        // Fondo alternado para filas
-        if (rowIndex % 2 === 0) {
-          doc.setFillColor(250, 250, 250);
-          doc.rect(margin, yPosition, pageWidth - 2 * margin, 10, 'F');
-        }
-        
-        // Contenido de la fila
-        const productName = item.product?.name || (config.language === 'es' ? 'Producto eliminado' : 'Deleted product');
-        
-        // Truncar nombre del producto si es muy largo
-        const maxProductNameWidth = 100;
-        const truncatedName = doc.getTextWidth(productName) > maxProductNameWidth 
-          ? productName.substring(0, 30) + '...'
-          : productName;
-        
-        doc.text(truncatedName, margin + 5, yPosition + 7);
-        doc.text(item.quantity.toString(), margin + 110, yPosition + 7, { align: 'center' });
-        doc.text(`${config.currency_symbol}${item.unit_price.toLocaleString()}`, margin + 135, yPosition + 7, { align: 'center' });
-        doc.text(`${config.currency_symbol}${itemTotal.toLocaleString()}`, pageWidth - margin - 5, yPosition + 7, { align: 'right' });
-        
-        yPosition += 10;
-        rowIndex++;
-      });
+    itemsToShow.forEach((item) => {
+      const itemTotal = item.unit_price * item.quantity;
+      
+      // Fondo alternado
+      if (rowIndex % 2 === 0) {
+        doc.setFillColor(250, 250, 250);
+        doc.rect(margin, yPosition, pageWidth - 2 * margin, 6, 'F');
+      }
+      
+      // Truncar nombre del producto
+      const productName = item.product?.name || 'Producto eliminado';
+      const maxNameLength = 35;
+      const truncatedName = productName.length > maxNameLength 
+        ? productName.substring(0, maxNameLength) + '...'
+        : productName;
+      
+      doc.text(truncatedName, margin + 2, yPosition + 4);
+      doc.text(item.quantity.toString(), margin + 85, yPosition + 4, { align: 'center' });
+      doc.text(`$${item.unit_price.toLocaleString()}`, margin + 115, yPosition + 4, { align: 'center' });
+      doc.text(`$${itemTotal.toLocaleString()}`, pageWidth - margin - 2, yPosition + 4, { align: 'right' });
+      
+      yPosition += 6;
+      rowIndex++;
+    });
+
+    // Si hay más productos, mostrar indicador
+    if (sale.sale_items && sale.sale_items.length > maxRows) {
+      doc.setFontSize(sizes.tiny);
+      doc.setTextColor(120, 120, 120);
+      doc.text(`... y ${sale.sale_items.length - maxRows} productos mas`, margin + 2, yPosition + 3);
+      yPosition += 6;
     }
 
-    // Línea separadora antes de totales
+    // === TOTALES COMPACTOS ===
     yPosition += 5;
+    
+    // Línea separadora
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.5);
-    doc.line(margin + 100, yPosition, pageWidth - margin, yPosition);
-    yPosition += 10;
+    doc.line(margin + 80, yPosition, pageWidth - margin, yPosition);
+    yPosition += 6;
 
-    // === SECCIÓN DE TOTALES ===
+    // Totales en columna derecha
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(sizes.normal);
+    doc.setFontSize(sizes.small);
     doc.setTextColor(80, 80, 80);
     
-    const subtotalLabel = config.language === 'es' ? 'Subtotal:' : 'Subtotal:';
-    doc.text(subtotalLabel, pageWidth - margin - 60, yPosition);
-    doc.text(`${config.currency_symbol}${sale.subtotal.toLocaleString()}`, pageWidth - margin - 5, yPosition, { align: 'right' });
+    const totalsX = pageWidth - margin - 60;
+    
+    doc.text('Subtotal:', totalsX, yPosition);
+    doc.text(`$${sale.subtotal.toLocaleString()}`, pageWidth - margin - 2, yPosition, { align: 'right' });
     
     // Descuento si aplica
     if (sale.discount_amount > 0) {
-      yPosition += 8;
-      const discountLabel = config.language === 'es' 
-        ? `Descuento ${sale.discount_type === 'percentage' ? `(${sale.discount_percentage}%)` : '(Fijo)'}:`
-        : `Discount ${sale.discount_type === 'percentage' ? `(${sale.discount_percentage}%)` : '(Fixed)'}:`;
+      yPosition += 5;
+      const discountText = sale.discount_type === 'percentage' 
+        ? `Descuento (${sale.discount_percentage}%):`
+        : 'Descuento:';
       
-      doc.setTextColor(231, 76, 60); // Rojo para descuento
-      doc.text(discountLabel, pageWidth - margin - 60, yPosition);
-      doc.text(`-${config.currency_symbol}${sale.discount_amount.toLocaleString()}`, pageWidth - margin - 5, yPosition, { align: 'right' });
-      doc.setTextColor(80, 80, 80); // Volver al color normal
+      doc.setTextColor(231, 76, 60);
+      doc.text(discountText, totalsX, yPosition);
+      doc.text(`-$${sale.discount_amount.toLocaleString()}`, pageWidth - margin - 2, yPosition, { align: 'right' });
+      doc.setTextColor(80, 80, 80);
     }
     
-    // Impuestos si están habilitados
-    if (config.include_tax && config.tax_rate > 0) {
-      yPosition += 8;
-      const taxAmount = (sale.subtotal - (sale.discount_amount || 0)) * (config.tax_rate / 100);
-      const taxLabel = config.language === 'es' ? `Impuesto (${config.tax_rate}%):` : `Tax (${config.tax_rate}%):`;
-      doc.text(taxLabel, pageWidth - margin - 60, yPosition);
-      doc.text(`${config.currency_symbol}${taxAmount.toLocaleString()}`, pageWidth - margin - 5, yPosition, { align: 'right' });
-    }
-    
-    // Línea antes del total
-    yPosition += 5;
-    doc.setDrawColor(52, 152, 219);
-    doc.setLineWidth(1);
-    doc.line(pageWidth - margin - 65, yPosition, pageWidth - margin, yPosition);
+    // Total final destacado
     yPosition += 8;
-    
-    // Total final con fondo destacado
     doc.setFillColor(52, 152, 219);
-    doc.rect(pageWidth - margin - 70, yPosition - 3, 65, 12, 'F');
+    doc.rect(totalsX - 5, yPosition - 3, 65, 10, 'F');
     
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(sizes.subtitle);
-    doc.setTextColor(255, 255, 255); // Blanco
-    const totalLabel = config.language === 'es' ? 'TOTAL:' : 'TOTAL:';
-    doc.text(totalLabel, pageWidth - margin - 65, yPosition + 5);
-    doc.text(`${config.currency_symbol}${sale.total.toLocaleString()}`, pageWidth - margin - 8, yPosition + 5, { align: 'right' });
+    doc.setFontSize(sizes.normal);
+    doc.setTextColor(255, 255, 255);
+    doc.text('TOTAL:', totalsX, yPosition + 3);
+    doc.text(`$${sale.total.toLocaleString()}`, pageWidth - margin - 2, yPosition + 3, { align: 'right' });
 
-    // === INFORMACIÓN DE PAGO ===
-    yPosition += 25;
-    
-    // Recuadro para información de pago
-    doc.setFillColor(248, 249, 250);
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(margin, yPosition, pageWidth - 2 * margin, 25, 'FD');
+    // === INFORMACIÓN DE PAGO COMPACTA ===
+    yPosition += 15;
     
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(sizes.header);
+    doc.setFontSize(sizes.small);
     doc.setTextColor(44, 62, 80);
-    const paymentInfoLabel = config.language === 'es' ? 'INFORMACIÓN DE PAGO' : 'PAYMENT INFORMATION';
-    doc.text(paymentInfoLabel, margin + 5, yPosition + 8);
+    doc.text('PAGO:', margin, yPosition);
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(sizes.normal);
     doc.setTextColor(80, 80, 80);
     
     const paymentMethods: Record<string, string> = {
-      cash: config.language === 'es' ? 'Efectivo' : 'Cash',
-      card: config.language === 'es' ? 'Tarjeta' : 'Card',
+      cash: 'Efectivo',
+      card: 'Tarjeta',
       nequi: 'NEQUI',
       daviplata: 'DAVIPLATA',
       bancolombia: 'BANCOLOMBIA',
-      transfer: config.language === 'es' ? 'Transferencia' : 'Transfer'
+      transfer: 'Transferencia'
     };
     
-    const methodLabel = config.language === 'es' ? 'Método de pago:' : 'Payment method:';
-    doc.text(`${methodLabel} ${paymentMethods[sale.payment_method] || sale.payment_method}`, margin + 5, yPosition + 15);
+    const paymentInfo = [`Metodo: ${paymentMethods[sale.payment_method] || sale.payment_method}`];
     
-    // Información de efectivo/transferencia
     if (sale.amount_received > 0) {
-      const receivedLabel = config.language === 'es' ? 'Recibido:' : 'Received:';
-      doc.text(`${receivedLabel} ${config.currency_symbol}${sale.amount_received.toLocaleString()}`, margin + 100, yPosition + 15);
-      
+      paymentInfo.push(`Recibido: $${sale.amount_received.toLocaleString()}`);
       if (sale.change_amount > 0) {
-        const changeLabel = config.language === 'es' ? 'Cambio:' : 'Change:';
-        doc.text(`${changeLabel} ${config.currency_symbol}${sale.change_amount.toLocaleString()}`, margin + 100, yPosition + 21);
+        paymentInfo.push(`Cambio: $${sale.change_amount.toLocaleString()}`);
       }
     }
+    
+    doc.text(paymentInfo.join(' | '), margin + 25, yPosition);
 
-    yPosition += 35;
-
-    // === CÓDIGO DE BARRAS ===
-    if (config.show_barcode && config.barcode_position === 'bottom') {
-      yPosition += 10;
-      
-      // Título para el código de barras
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(sizes.normal);
-      doc.setTextColor(44, 62, 80);
-      const barcodeLabel = config.language === 'es' ? 'CÓDIGO DE BARRAS' : 'BARCODE';
-      doc.text(barcodeLabel, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 8;
-      
-      // Generar código de barras
-      const canvas = document.createElement('canvas');
+    // === CÓDIGO DE BARRAS OPTIMIZADO ===
+    yPosition += 12;
+    
+    // Generar código de barras en canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 400; // Ancho fijo para mejor calidad
+    canvas.height = 80; // Altura fija
+    
+    try {
       JsBarcode(canvas, sale.invoice_barcode, {
         format: 'CODE128',
         width: 2,
-        height: 40,
-        displayValue: true,
-        fontSize: 12,
-        textMargin: 5,
-        textAlign: 'center'
+        height: 50,
+        displayValue: false, // No mostrar texto en el código
+        margin: 0,
+        background: '#ffffff',
+        lineColor: '#000000'
       });
       
+      // Convertir a imagen y agregar al PDF
       const barcodeDataUrl = canvas.toDataURL('image/png');
-      const barcodeWidth = 120;
-      const barcodeX = (pageWidth - barcodeWidth) / 2; // Centrar
+      const barcodeWidth = 80; // Ancho en el PDF
+      const barcodeHeight = 20; // Altura en el PDF
+      const barcodeX = (pageWidth - barcodeWidth) / 2; // Centrar horizontalmente
       
-      doc.addImage(barcodeDataUrl, 'PNG', barcodeX, yPosition, barcodeWidth, 25);
+      // Título del código de barras
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(sizes.small);
+      doc.setTextColor(44, 62, 80);
+      doc.text('CODIGO DE BARRAS', pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 6;
+      
+      // Insertar imagen del código de barras
+      doc.addImage(barcodeDataUrl, 'PNG', barcodeX, yPosition, barcodeWidth, barcodeHeight);
+      
+      yPosition += barcodeHeight + 3;
       
       // Número del código de barras debajo
-      yPosition += 30;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(sizes.small);
       doc.setTextColor(100, 100, 100);
       doc.text(sale.invoice_barcode, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 5;
-    }
-
-    // === TÉRMINOS Y CONDICIONES ===
-    if (config.terms_and_conditions) {
-      yPosition += 10;
       
-      doc.setFillColor(252, 252, 252);
-      doc.setDrawColor(220, 220, 220);
-      
-      // Calcular altura necesaria para el texto
-      const lines = doc.splitTextToSize(config.terms_and_conditions, pageWidth - 2 * margin - 10);
-      const textHeight = lines.length * 4 + 10;
-      
-      doc.rect(margin, yPosition, pageWidth - 2 * margin, textHeight, 'FD');
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(sizes.normal);
-      doc.setTextColor(44, 62, 80);
-      const termsLabel = config.language === 'es' ? 'TÉRMINOS Y CONDICIONES' : 'TERMS AND CONDITIONS';
-      doc.text(termsLabel, margin + 5, yPosition + 8);
-      
+    } catch (error) {
+      console.error('Error generating barcode:', error);
+      // Fallback: mostrar solo el número
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(sizes.small);
       doc.setTextColor(100, 100, 100);
-      doc.text(lines, margin + 5, yPosition + 15);
-      
-      yPosition += textHeight + 5;
+      doc.text(`Codigo: ${sale.invoice_barcode}`, pageWidth / 2, yPosition, { align: 'center' });
     }
 
-    // === FOOTER ===
-    yPosition += 15;
-    
+    yPosition += 8;
+
+    // === FOOTER COMPACTO ===
     // Línea decorativa
     doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.5);
+    doc.setLineWidth(0.3);
     doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 8;
+    yPosition += 5;
     
     // Texto del footer
     doc.setFont('helvetica', 'italic');
-    doc.setFontSize(sizes.small);
+    doc.setFontSize(sizes.tiny);
     doc.setTextColor(120, 120, 120);
-    doc.text(config.footer_text, pageWidth / 2, yPosition, { align: 'center' });
     
-    yPosition += 8;
+    // Dividir footer en líneas si es muy largo
+    const footerLines = doc.splitTextToSize(config.footer_text, pageWidth - 2 * margin);
+    const maxFooterLines = 2; // Máximo 2 líneas para el footer
+    const footerToShow = footerLines.slice(0, maxFooterLines);
+    
+    footerToShow.forEach((line: string, index: number) => {
+      doc.text(line, pageWidth / 2, yPosition + (index * 4), { align: 'center' });
+    });
+    
+    yPosition += footerToShow.length * 4 + 3;
     
     // Información de generación
-    const generatedLabel = config.language === 'es' ? 'Factura generada el' : 'Invoice generated on';
-    const locale = config.language === 'es' ? 'es-ES' : 'en-US';
-    const generatedText = `${generatedLabel} ${new Date().toLocaleString(locale)}`;
+    const generatedText = `Generada el ${new Date().toLocaleString('es-ES')}`;
     doc.text(generatedText, pageWidth / 2, yPosition, { align: 'center' });
 
-    // Verificar si necesitamos una nueva página
-    if (yPosition > pageHeight - 30) {
-      doc.addPage();
-      yPosition = 30;
-    }
-
-    // === INFORMACIÓN ADICIONAL ===
-    if (sale.customer?.tax_id || sale.customer?.customer_type === 'business') {
-      yPosition += 15;
+    // === TÉRMINOS Y CONDICIONES (solo si hay espacio) ===
+    if (config.terms_and_conditions && yPosition < pageHeight - 30) {
+      yPosition += 8;
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(sizes.tiny);
+      doc.setTextColor(44, 62, 80);
+      doc.text('TERMINOS Y CONDICIONES:', margin, yPosition);
+      
+      yPosition += 4;
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(sizes.small);
       doc.setTextColor(100, 100, 100);
       
-      if (sale.customer.tax_id) {
-        const taxIdLabel = config.language === 'es' ? 'RFC Cliente:' : 'Customer Tax ID:';
-        doc.text(`${taxIdLabel} ${sale.customer.tax_id}`, margin, yPosition);
-      }
+      // Limitar términos a 2 líneas máximo
+      const termsLines = doc.splitTextToSize(config.terms_and_conditions, pageWidth - 2 * margin);
+      const maxTermsLines = 2;
+      const termsToShow = termsLines.slice(0, maxTermsLines);
+      
+      termsToShow.forEach((line: string, index: number) => {
+        doc.text(line, margin, yPosition + (index * 3));
+      });
     }
 
-    // Descargar PDF con nombre descriptivo
+    // Generar nombre del archivo
     const customerName = (sale.customer?.name || sale.customer_name || 'Cliente_Anonimo')
       .replace(/\s+/g, '_')
       .replace(/[^a-zA-Z0-9_]/g, '');
