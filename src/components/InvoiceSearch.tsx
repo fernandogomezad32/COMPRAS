@@ -318,7 +318,7 @@ export function InvoiceSearch() {
             <div className="mt-6 pt-6 border-t border-gray-200">
               <h3 className="text-lg font-medium text-gray-900 mb-3">Código de Barras de la Factura</h3>
               <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <div id={`barcode-${foundSale.id}`} className="mb-2"></div>
+                <canvas id={`barcode-${foundSale.id}`} className="mb-2 mx-auto"></canvas>
                 <p className="text-sm text-gray-600 font-mono">{foundSale.invoice_barcode}</p>
               </div>
             </div>

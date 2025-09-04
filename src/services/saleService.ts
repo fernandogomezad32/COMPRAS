@@ -96,7 +96,7 @@ export const saleService = {
         discount_amount: discountValue,
         discount_percentage: discount_type === 'percentage' ? discount_percentage : 0,
         discount_type,
-        customer_id,
+        customer_id: customer_id || null,
         customer_name,
         customer_email,
         payment_method,

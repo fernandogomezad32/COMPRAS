@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import JsBarcode from 'jsbarcode';
+import { supabase } from '../lib/supabase';
 import type { Sale } from '../types';
 
 export const invoiceService = {
