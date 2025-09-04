@@ -355,7 +355,6 @@ export const invoiceService = {
         fontSize: 12,
         textMargin: 5,
         textAlign: 'center'
-        textAlign: 'center'
       });
       
       const barcodeDataUrl = canvas.toDataURL('image/png');
