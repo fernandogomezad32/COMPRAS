@@ -117,3 +117,26 @@ export interface Report {
   created_at: string;
   updated_at: string;
 }
+
+export interface Return {
+  id: string;
+  sale_id: string;
+  sale_item_id: string;
+  product_id: string;
+  customer_id: string | null;
+  quantity_returned: number;
+  reason: string;
+  return_type: 'refund' | 'exchange' | 'warranty';
+  condition: 'excellent' | 'good' | 'fair' | 'poor' | 'damaged';
+  refund_amount: number;
+  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled';
+  processed_by: string | null;
+  notes: string;
+  return_date: string;
+  created_at: string;
+  updated_at: string;
+  sale?: Sale;
+  sale_item?: SaleItem;
+  product?: Product;
+  customer?: Customer;
+}

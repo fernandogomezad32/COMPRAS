@@ -10,7 +10,8 @@ import {
   Users,
   Building,
   LogOut,
-  Store
+  Store,
+  RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -31,6 +32,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
     { id: 'customers', name: 'Clientes', icon: Users },
     { id: 'suppliers', name: 'Proveedores', icon: Building },
     { id: 'sales', name: 'Ventas', icon: ShoppingCart },
+    { id: 'returns', name: 'Devoluciones', icon: RotateCcw },
     { id: 'reports', name: 'Reportes', icon: BarChart3 },
   ];
 

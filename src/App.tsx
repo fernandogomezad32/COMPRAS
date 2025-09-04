@@ -9,6 +9,7 @@ import { SupplierManagement } from './components/SupplierManagement';
 import { CategoryManagement } from './components/CategoryManagement';
 import { SalesManagement } from './components/SalesManagement';
 import { Reports } from './components/Reports';
+import { ReturnsManagement } from './components/ReturnsManagement';
 
 function App() {
   const { user, loading } = useAuth();
@@ -42,6 +43,8 @@ function App() {
         return <SalesManagement />;
       case 'reports':
         return <Reports />;
+      case 'returns':
+        return <ReturnsManagement />;
       default:
         return <Dashboard />;
     }
