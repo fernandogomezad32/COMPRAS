@@ -11,7 +11,8 @@ import {
   Building,
   LogOut,
   Store,
-  RotateCcw
+  RotateCcw,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
