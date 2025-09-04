@@ -69,6 +69,7 @@ export interface SaleItem {
   total_price: number;
   created_at: string;
   product?: Product;
+  returns?: Return[];
 }
 
 export interface CartItem {

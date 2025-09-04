@@ -10,7 +10,8 @@ export const saleService = {
         customer:customers(*),
         sale_items(
           *,
-          product:products(*)
+          product:products(*),
+          returns(*)
         )
       `)
       .order('created_at', { ascending: false });
@@ -27,7 +28,8 @@ export const saleService = {
         customer:customers(*),
         sale_items(
           *,
-          product:products(*)
+          product:products(*),
+          returns(*)
         )
       `)
       .eq('id', id)

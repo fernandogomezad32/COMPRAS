@@ -642,6 +642,9 @@ export function Reports() {
                     <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
                     </th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Devoluciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -657,6 +660,16 @@ export function Reports() {
                     // Ajustar ganancia por descuento aplicado
                     const finalProfit = saleProfit - (sale.discount_amount || 0);
                     const isProfitable = finalProfit >= 0;
+                    
+                    // Verificar si hay devoluciones para esta venta
+                    const hasReturns = sale.sale_items?.some(item => 
+                      item.returns && item.returns.length > 0
+                    ) || false;
+                    
+                    const totalReturned = sale.sale_items?.reduce((sum, item) => {
+                      return sum + (item.returns?.reduce((returnSum, ret) => 
+                        returnSum + ret.quantity_returned, 0) || 0);
+                    }, 0) || 0;
                     
                     return (
                     <tr key={sale.id} className="hover:bg-gray-50">
@@ -676,9 +689,18 @@ export function Reports() {
                           {sale.sale_items && sale.sale_items.length > 0 ? (
                             <div className="space-y-1">
                               {sale.sale_items.slice(0, 3).map((item, index) => (
-                                <div key={index} className="text-xs bg-gray-100 rounded px-2 py-1">
+                                <div key={index} className={`text-xs rounded px-2 py-1 ${
+                                  item.returns && item.returns.length > 0 
+                                    ? 'bg-orange-100 border border-orange-200' 
+                                    : 'bg-gray-100'
+                                }`}>
                                   <span className="font-medium">{item.product?.name || 'Producto eliminado'}</span>
                                   <span className="text-gray-600 ml-1">x{item.quantity}</span>
+                                  {item.returns && item.returns.length > 0 && (
+                                    <span className="text-orange-600 ml-1">
+                                      (Dev: {item.returns.reduce((sum, ret) => sum + ret.quantity_returned, 0)})
+                                    </span>
+                                  )}
                                 </div>
                               ))}
                               {sale.sale_items.length > 3 && (
@@ -780,6 +802,20 @@ export function Reports() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
                         ${sale.total.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {hasReturns ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              🔄 {totalReturned} devueltos
+                            </span>
+                            <div className="text-xs text-gray-500">
+                              Ver devoluciones
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Sin devoluciones</span>
+                        )}
                       </td>
                     </tr>
                     );
