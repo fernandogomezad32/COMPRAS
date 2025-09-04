@@ -119,6 +119,12 @@ export const installmentService = {
 
     // Calcular próxima fecha de pago
     const startDate = new Date(installmentData.start_date);
+    
+    // Validar que la fecha de inicio sea válida
+    if (isNaN(startDate.getTime())) {
+      throw new Error('Fecha de inicio inválida');
+    }
+    
     let nextPaymentDate = new Date(startDate);
     
     switch (installmentData.installment_type) {
