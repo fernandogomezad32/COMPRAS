@@ -180,7 +180,7 @@ export const installmentService = {
     payment_method: string;
     payment_date: string;
     notes?: string;
-  }): Promise<InstallmentPayment> {
+  }): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) throw new Error('Usuario no autenticado');
@@ -193,7 +193,7 @@ export const installmentService = {
 
     const paymentNumber = (count || 0) + 1;
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('installment_payments')
       .insert({
         installment_sale_id: installmentSaleId,
@@ -203,12 +203,9 @@ export const installmentService = {
         payment_method: paymentData.payment_method,
         notes: paymentData.notes || '',
         created_by: user.id
-      })
-      .select('id, installment_sale_id, payment_number, amount, payment_date, payment_method, notes, created_by, created_at')
-      .single();
+      });
 
     if (error) throw error;
-    return data;
   },
 
   async updateStatus(id: string, status: InstallmentSale['status']): Promise<InstallmentSale> {
