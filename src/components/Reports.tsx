@@ -19,7 +19,6 @@ import {
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
 import { saleService } from '../services/saleService';
-import { SaleForm } from './SaleForm';
 import { categoryService } from '../services/categoryService';
 import { installmentService } from '../services/installmentService';
 import { InstallmentSalesReport } from './InstallmentSalesReport';
@@ -1013,9 +1012,6 @@ export function Reports() {
                     <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
-                      Ventas por Abono
-                    </th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Devoluciones
                     </th>
@@ -1270,23 +1266,6 @@ export function Reports() {
                           <div className="text-sm text-gray-500">{report.description}</div>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {sale.customer_id ? (
-                        <div className="text-sm">
-                          <div className="text-blue-600 font-medium">
-                            {installmentSales.filter(inst => inst.customer_id === sale.customer_id).length} activas
-                          </div>
-                          <div className="text-gray-500 text-xs">
-                            ${installmentSales
-                              .filter(inst => inst.customer_id === sale.customer_id && inst.status === 'active')
-                              .reduce((sum, inst) => sum + inst.remaining_amount, 0)
-                              .toLocaleString()} pendiente
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-sm">-</span>
-                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">

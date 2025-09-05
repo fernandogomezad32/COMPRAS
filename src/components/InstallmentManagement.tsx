@@ -251,9 +251,6 @@ export function InstallmentManagement() {
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
-                  Proceso de Abonos
-                </th>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
@@ -353,25 +350,6 @@ export function InstallmentManagement() {
                            sale.status === 'overdue' ? 'Vencida' : 'Cancelada'}
                         </span>
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium text-gray-900">
-                          {sale.installment_payments?.length || 0} pagos realizados
-                        </div>
-                        {sale.installment_payments && sale.installment_payments.length > 0 && (
-                          <div className="text-xs text-gray-500">
-                            Último pago: {format(
-                              new Date(sale.installment_payments[sale.installment_payments.length - 1].payment_date), 
-                              'dd/MM/yyyy', 
-                              { locale: es }
-                            )}
-                          </div>
-                        )}
-                        <div className="text-xs text-blue-600">
-                          Ver historial completo
-                        </div>
-                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
