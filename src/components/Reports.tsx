@@ -12,25 +12,31 @@ import {
   Trash2,
   Star,
   FileText,
-  FileText as FileTextIcon
+  FileText as FileTextIcon,
+  Filter,
+  Clock
 } from 'lucide-react';
-import { saleService } from '../services/saleService';
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
-import { categoryService } from '../services/categoryService';
-import { reportService } from '../services/reportService';
-import type { Sale, Product, Customer, Report } from '../types';
-import { ReportForm } from './ReportForm';
+import { saleService } from '../services/saleService';
 import { SaleForm } from './SaleForm';
+import { categoryService } from '../services/categoryService';
+import { installmentService } from '../services/installmentService';
+import { InstallmentSalesReport } from './InstallmentSalesReport';
+import { reportService } from '../services/reportService';
+import type { Sale, Product, Customer, Report, InstallmentSale } from '../types';
+import { ReportForm } from './ReportForm';
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 
 export function Reports() {
   const [sales, setSales] = useState<Sale[]>([]);
+  const [installmentSales, setInstallmentSales] = useState<InstallmentSale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [activeSubTab, setActiveSubTab] = useState('regular');
   const [customerStats, setCustomerStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState('today');
@@ -38,7 +44,7 @@ export function Reports() {
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
-  const [activeTab, setActiveTab] = useState<'analytics' | 'saved'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'installments' | 'saved'>('analytics');
 
   useEffect(() => {
     loadData();
@@ -46,14 +52,16 @@ export function Reports() {
 
   const loadData = async () => {
     try {
-      const [salesData, productsData, categoriesData, customerStatsData, reportsData] = await Promise.all([
+      const [salesData, installmentSalesData, productsData, categoriesData, customerStatsData, reportsData] = await Promise.all([
         saleService.getAll(),
+        installmentService.getAll(),
         productService.getAll(),
         categoryService.getAll(),
         customerService.getStats(),
         reportService.getAll()
       ]);
       setSales(salesData);
+      setInstallmentSales(installmentSalesData);
       setProducts(productsData);
       setCategories(categoriesData);
       setCustomerStats(customerStatsData);
@@ -459,6 +467,19 @@ export function Reports() {
               </div>
             </button>
             <button
+              onClick={() => setActiveTab('installments')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'installments'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-4 w-4" />
+                <span>Ventas por Abonos</span>
+              </div>
+            </button>
+            <button
               onClick={() => setActiveTab('saved')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'saved'
@@ -668,17 +689,13 @@ export function Reports() {
                           {index + 1}
                         </div>
                         <div>
-                          <h3 className="font-medium text-gray-900">{customer.name}</h3>
-                          <p className="text-sm text-gray-600">
-                            {customer.email || customer.phone || 'Sin contacto'}
-                          </p>
+                          <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                          <div className="text-sm text-gray-500">{customer.email}</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gray-900">{customer.totalPurchases} compras</p>
-                        <p className="text-sm text-green-600">
-                          ${customer.totalSpent.toLocaleString()}
-                        </p>
+                        <div className="text-sm font-medium text-gray-900">${customer.totalSpent?.toLocaleString() || 0}</div>
+                        <div className="text-sm text-gray-500">{customer.totalOrders || 0} compras</div>
                       </div>
                     </div>
                   ))}
@@ -687,51 +704,274 @@ export function Reports() {
             </div>
           )}
 
-          {/* Top Products */}
-          <div className="bg-white rounded-xl shadow-md">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Productos Más Vendidos</h2>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {stats.topProducts.map((product, index) => (
-                  <div key={product.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">{product.name}</h3>
-                        <p className="text-sm text-gray-600">{product.category?.name || 'Sin categoría'}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">{product.soldQuantity} vendidos</p>
-                      <p className="text-sm text-green-600">
-                        ${product.revenue.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {stats.topProducts.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Package className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                    <p>No hay datos de ventas para el período seleccionado</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Ventas Recientes */}
           <div className="bg-white rounded-xl shadow-md">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Ventas Recientes</h2>
-                <span className="text-sm text-gray-500">
-                  {getFilteredSales().length} ventas encontradas
-                </span>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setActiveSubTab('regular')}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      activeSubTab === 'regular'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Regulares ({sales.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveSubTab('installments')}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      activeSubTab === 'installments'
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Por Abonos ({installmentSales.length})
+                  </button>
+                </div>
               </div>
+            </div>
+            
+            {activeSubTab === 'regular' ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Cliente
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Método de Pago
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Estado
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Fecha
+                      </th>
+                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {sales.slice(0, 10).map((sale) => (
+                      <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {sale.customer?.name || sale.customer_name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {sale.customer?.email || sale.customer_email}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            ${sale.total.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {sale.sale_items?.length || 0} productos
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {sale.payment_method === 'cash' ? '💵 Efectivo' :
+                             sale.payment_method === 'card' ? '💳 Tarjeta' :
+                             sale.payment_method === 'nequi' ? '📱 NEQUI' :
+                             sale.payment_method === 'daviplata' ? '📱 DAVIPLATA' :
+                             sale.payment_method === 'bancolombia' ? '📱 BANCOLOMBIA' :
+                             sale.payment_method === 'transfer' ? '📱 Transferencia' :
+                             sale.payment_method}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            sale.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {sale.status === 'completed' ? 'Completada' :
+                             sale.status === 'pending' ? 'Pendiente' : 'Cancelada'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end space-x-2">
+                            <button
+                              onClick={() => handleEditSale(sale)}
+                              className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSale(sale.id)}
+                              className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Cliente
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Plan de Abonos
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Progreso
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Montos
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Estado
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Fecha Creación
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {installmentSales.slice(0, 10).map((sale) => {
+                      const progressPercentage = (sale.paid_amount / sale.total_amount) * 100;
+                      const isOverdue = new Date(sale.next_payment_date) < new Date() && sale.status === 'active';
+                      
+                      return (
+                        <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                <Users className="h-5 w-5 text-purple-600" />
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {sale.customer?.name || 'Cliente eliminado'}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {sale.customer?.email || sale.customer?.phone || 'Sin contacto'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              <div className="font-medium">
+                                {sale.installment_count} abonos {
+                                  sale.installment_type === 'daily' ? 'diarios' :
+                                  sale.installment_type === 'weekly' ? 'semanales' : 'mensuales'
+                                }
+                              </div>
+                              <div className="text-gray-500">
+                                ${sale.installment_amount.toLocaleString()} por abono
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">
+                                  {sale.paid_installments} / {sale.installment_count}
+                                </span>
+                                <span className="font-medium">
+                                  {progressPercentage.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all ${
+                                    progressPercentage === 100 ? 'bg-green-500' :
+                                    progressPercentage >= 75 ? 'bg-blue-500' :
+                                    progressPercentage >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm">
+                              <div className="text-gray-900 font-medium">
+                                Total: ${sale.total_amount.toLocaleString()}
+                              </div>
+                              <div className="text-green-600">
+                                Pagado: ${sale.paid_amount.toLocaleString()}
+                              </div>
+                              <div className="text-orange-600">
+                                Pendiente: ${sale.remaining_amount.toLocaleString()}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              sale.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                              sale.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              sale.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {sale.status === 'active' ? <Clock className="h-3 w-3" /> :
+                               sale.status === 'completed' ? <CheckCircle className="h-3 w-3" /> :
+                               sale.status === 'overdue' ? <AlertTriangle className="h-3 w-3" /> :
+                               <XCircle className="h-3 w-3" />}
+                              <span>
+                                {sale.status === 'active' ? 'Activa' :
+                                 sale.status === 'completed' ? 'Completada' :
+                                 sale.status === 'overdue' ? 'Vencida' : 'Cancelada'}
+                              </span>
+                              {isOverdue && <span className="text-red-600">⚠️</span>}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            {((activeSubTab === 'regular' && sales.length === 0) || 
+              (activeSubTab === 'installments' && installmentSales.length === 0)) && (
+              <div className="text-center py-12">
+                {activeSubTab === 'regular' ? (
+                  <>
+                    <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No hay ventas regulares</h3>
+                    <p className="mt-1 text-sm text-gray-500">Las ventas aparecerán aquí una vez que se realicen.</p>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No hay ventas por abonos</h3>
+                    <p className="mt-1 text-sm text-gray-500">Las ventas por abonos aparecerán aquí una vez que se creen.</p>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Análisis Detallado de Ventas */}
+          <div className="bg-white rounded-xl shadow-md">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Análisis Detallado de Ventas</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -772,6 +1012,9 @@ export function Reports() {
                     </th>
                     <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      Ventas por Abono
                     </th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Devoluciones
@@ -975,6 +1218,14 @@ export function Reports() {
         </>
       )}
 
+      {activeTab === 'installments' && (
+        <InstallmentSalesReport 
+          dateFilter={dateFilter}
+          onEditSale={handleEditSale}
+          onDeleteSale={handleDeleteSale}
+        />
+      )}
+
       {activeTab === 'saved' && (
         <div className="bg-white rounded-xl shadow-md">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -1019,6 +1270,23 @@ export function Reports() {
                           <div className="text-sm text-gray-500">{report.description}</div>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {sale.customer_id ? (
+                        <div className="text-sm">
+                          <div className="text-blue-600 font-medium">
+                            {installmentSales.filter(inst => inst.customer_id === sale.customer_id).length} activas
+                          </div>
+                          <div className="text-gray-500 text-xs">
+                            ${installmentSales
+                              .filter(inst => inst.customer_id === sale.customer_id && inst.status === 'active')
+                              .reduce((sum, inst) => sum + inst.remaining_amount, 0)
+                              .toLocaleString()} pendiente
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
