@@ -63,25 +63,12 @@ export const reportService = {
   },
 
   async toggleFavorite(id: string, isFavorite: boolean): Promise<Report> {
-    const { data, error } = await supabase
-      .from('reports')
-      .update({ is_favorite: isFavorite })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    // This functionality is not supported in the current schema
+    throw new Error('Favorite functionality not available');
   },
 
   async getFavorites(): Promise<Report[]> {
-    const { data, error } = await supabase
-      .from('reports')
-      .select('*')
-      .eq('is_favorite', true)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
+    // This functionality is not supported in the current schema
+    return [];
   }
 };

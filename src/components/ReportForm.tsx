@@ -11,13 +11,12 @@ interface ReportFormProps {
 
 export function ReportForm({ report, onSubmit, onCancel }: ReportFormProps) {
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
     description: '',
-    type: 'custom' as Report['type'],
+    report_type: 'sales' as Report['report_type'],
     period: 'month',
-    start_date: '',
-    end_date: '',
-    is_favorite: false
+    date_range_start: '',
+    date_range_end: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,13 +24,12 @@ export function ReportForm({ report, onSubmit, onCancel }: ReportFormProps) {
   useEffect(() => {
     if (report) {
       setFormData({
-        name: report.name,
+        title: report.title,
         description: report.description,
-        type: report.type,
-        period: report.date_range.period || 'month',
-        start_date: report.date_range.start_date || '',
-        end_date: report.date_range.end_date || '',
-        is_favorite: report.is_favorite
+        report_type: report.report_type,
+        period: (report.filters as any)?.period || 'month',
+        date_range_start: report.date_range_start || '',
+        date_range_end: report.date_range_end || ''
       });
     }
   }, [report]);
@@ -43,16 +41,12 @@ export function ReportForm({ report, onSubmit, onCancel }: ReportFormProps) {
 
     try {
       const reportData = {
-        name: formData.name,
+        title: formData.title,
         description: formData.description,
-        type: formData.type,
-        filters: {},
-        date_range: {
-          period: formData.period,
-          start_date: formData.start_date || undefined,
-          end_date: formData.end_date || undefined
-        },
-        is_favorite: formData.is_favorite
+        report_type: formData.report_type,
+        filters: { period: formData.period },
+        date_range_start: formData.date_range_start || null,
+        date_range_end: formData.date_range_end || null
       };
 
       if (report) {
@@ -103,16 +97,16 @@ export function ReportForm({ report, onSubmit, onCancel }: ReportFormProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                 Nombre del Reporte *
               </label>
               <div className="relative">
                 <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
+                  id="title"
+                  name="title"
+                  value={formData.title}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
@@ -122,15 +116,15 @@ export function ReportForm({ report, onSubmit, onCancel }: ReportFormProps) {
             </div>
 
             <div>
-              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="report_type" className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo de Reporte
               </label>
               <div className="relative">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <select
-                  id="type"
-                  name="type"
-                  value={formData.type}
+                  id="report_type"
+                  name="report_type"
+                  value={formData.report_type}
                   onChange={handleChange}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -138,7 +132,9 @@ export function ReportForm({ report, onSubmit, onCancel }: ReportFormProps) {
                   <option value="inventory">Inventario</option>
                   <option value="customers">Clientes</option>
                   <option value="suppliers">Proveedores</option>
-                  <option value="custom">Personalizado</option>
+                  <option value="returns">Devoluciones</option>
+                  <option value="installments">Abonos</option>
+                  <option value="financial">Financiero</option>
                 </select>
               </div>
             </div>
@@ -183,47 +179,34 @@ export function ReportForm({ report, onSubmit, onCancel }: ReportFormProps) {
             {formData.period === 'custom' && (
               <>
                 <div>
-                  <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="date_range_start" className="block text-sm font-medium text-gray-700 mb-2">
                     Fecha Inicio
                   </label>
                   <input
                     type="date"
-                    id="start_date"
-                    name="start_date"
-                    value={formData.start_date}
+                    id="date_range_start"
+                    name="date_range_start"
+                    value={formData.date_range_start}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="date_range_end" className="block text-sm font-medium text-gray-700 mb-2">
                     Fecha Fin
                   </label>
                   <input
                     type="date"
-                    id="end_date"
-                    name="end_date"
-                    value={formData.end_date}
+                    id="date_range_end"
+                    name="date_range_end"
+                    value={formData.date_range_end}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
               </>
             )}
-
-            <div className="md:col-span-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  name="is_favorite"
-                  checked={formData.is_favorite}
-                  onChange={handleChange}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-700">Marcar como favorito</span>
-              </label>
-            </div>
           </div>
 
           {/* Buttons */}
