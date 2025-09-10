@@ -9,7 +9,8 @@ import {
   Users,
   Plus,
   Edit2,
-  Trash2,
+  Heart,
+  CheckCircle
   Star,
   FileText,
   FileText as FileTextIcon,
