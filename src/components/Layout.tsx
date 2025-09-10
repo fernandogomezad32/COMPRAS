@@ -37,6 +37,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
     { id: 'installments', name: 'Ventas por Abonos', icon: Calendar },
     { id: 'returns', name: 'Devoluciones', icon: RotateCcw },
     { id: 'invoices', name: 'Facturas', icon: FileText },
+    { id: 'users', name: 'Usuarios', icon: Users },
     { id: 'reports', name: 'Reportes', icon: BarChart3 },
   ];
 
