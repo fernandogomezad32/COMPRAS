@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { X } from 'lucide-react';
 import { useAuth } from './hooks/useAuth';
 import { Layout } from './components/Layout';
 import { AuthForm } from './components/AuthForm';
