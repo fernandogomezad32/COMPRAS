@@ -38,18 +38,29 @@ export const userService = {
     
     if (!user) throw new Error('Usuario no autenticado');
 
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching user role:', error);
-      return 'employee'; // Default role
+    // Use user metadata first, then fallback to database query
+    const metadataRole = user.user_metadata?.role;
+    if (metadataRole && ['super_admin', 'admin', 'employee'].includes(metadataRole)) {
+      return metadataRole;
     }
-    
-    return data?.role || 'employee';
+
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return 'employee'; // Default role
+      }
+      
+      return data?.role || 'employee';
+    } catch (error) {
+      console.error('Error in getCurrentUserRole:', error);
+      return 'employee';
+    }
   },
 
   async createProfileForAuthUser(
@@ -77,31 +88,19 @@ export const userService = {
 
   async ensureUserProfile(user: any): Promise<void> {
     try {
-      // Check if profile exists
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Error checking user profile:', checkError);
-        return; // Don't throw to avoid breaking auth flow
-      }
-
-      if (!existingProfile) {
-        // Create profile for user
-        try {
-          await this.createProfileForAuthUser(
-            user.id,
-            user.email,
-            user.user_metadata?.full_name || user.email.split('@')[0],
-            'employee'
-          );
-        } catch (profileError) {
+      // Try to create profile directly - if it exists, it will fail silently
+      // This avoids the recursive SELECT query that was causing issues
+      try {
+        await this.createProfileForAuthUser(
+          user.id,
+          user.email,
+          user.user_metadata?.full_name || user.email.split('@')[0],
+          'employee'
+        );
+      } catch (profileError: any) {
+        // If profile already exists, that's fine - ignore the error
+        if (profileError?.code !== '23505') { // 23505 is unique constraint violation
           console.error('Error creating user profile:', profileError);
-          // Try alternative approach - let the database trigger handle it
-          return;
         }
       }
     } catch (error) {
