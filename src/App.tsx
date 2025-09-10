@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { Layout } from './components/Layout';
 import { AuthForm } from './components/AuthForm';
+import { InitialSetup } from './components/InitialSetup';
 import Dashboard from './components/Dashboard';
 import { ProductManagement } from './components/ProductManagement';
 import { CustomerManagement } from './components/CustomerManagement';
@@ -15,7 +16,7 @@ import { InstallmentManagement } from './components/InstallmentManagement';
 import { UserManagement } from './components/UserManagement';
 
 function App() {
-  const { user, loading } = useAuth();
+  const { user, needsInitialSetup, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   if (loading) {
@@ -24,6 +25,10 @@ function App() {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
+  }
+
+  if (needsInitialSetup) {
+    return <InitialSetup onComplete={() => window.location.reload()} />;
   }
 
   if (!user) {
