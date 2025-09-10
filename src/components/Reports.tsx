@@ -10,7 +10,7 @@ import {
   Plus,
   Edit2,
   Heart,
-  CheckCircle
+  CheckCircle,
   Star,
   FileText,
   FileText as FileTextIcon,
