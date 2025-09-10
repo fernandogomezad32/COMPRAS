@@ -107,17 +107,13 @@ export interface Supplier {
 
 export interface Report {
   id: string;
-  name: string;
+  title: string;
   description: string;
-  type: 'sales' | 'inventory' | 'customers' | 'suppliers' | 'custom';
+  report_type: 'sales' | 'inventory' | 'customers' | 'suppliers' | 'returns' | 'installments' | 'financial';
   filters: Record<string, any>;
-  date_range: {
-    start_date?: string;
-    end_date?: string;
-    period?: 'today' | 'week' | 'month' | 'year' | 'custom';
-  };
+  date_range_start?: string | null;
+  date_range_end?: string | null;
   created_by: string;
-  is_favorite: boolean;
   created_at: string;
   updated_at: string;
 }
