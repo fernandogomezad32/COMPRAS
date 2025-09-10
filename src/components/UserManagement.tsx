@@ -59,6 +59,7 @@ export function UserManagement() {
       console.error('Error loading current user role:', error);
       // Set default role instead of showing error
       setCurrentUserRole('employee');
+    }
   };
 
   const filterUsers = () => {
