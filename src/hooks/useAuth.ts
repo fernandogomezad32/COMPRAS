@@ -18,8 +18,14 @@ export function useAuth() {
           setUser(null);
         } else {
           setUser(session?.user ?? null);
+          
+          // Ensure user profile exists when user is found
+          if (session?.user) {
+            await userService.ensureUserProfile(session.user);
+          }
         }
       } catch (error) {
+        console.error('Error getting initial session:', error);
         // En caso de error, asegurar que el usuario esté deslogueado
         setUser(null);
       } finally {

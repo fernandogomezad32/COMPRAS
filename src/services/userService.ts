@@ -86,15 +86,21 @@ export const userService = {
 
       if (!existingProfile) {
         // Create profile for user
-        await this.createProfileForAuthUser(
-          user.id,
-          user.email,
-          user.user_metadata?.full_name || user.email.split('@')[0],
-          'employee'
-        );
+        try {
+          await this.createProfileForAuthUser(
+            user.id,
+            user.email,
+            user.user_metadata?.full_name || user.email.split('@')[0],
+            'employee'
+          );
+        } catch (profileError) {
+          console.error('Error creating user profile:', profileError);
+          // Don't throw error to avoid breaking auth flow
+        }
       }
     } catch (error) {
       console.error('Error ensuring user profile:', error);
+      // Don't throw error to avoid breaking auth flow
     }
   },
   async create(userData: {
