@@ -12,6 +12,7 @@ import {
   Heart,
   CheckCircle,
   Star,
+  Trash2,
   FileText,
   FileText as FileTextIcon,
   Filter,
