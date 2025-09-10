@@ -88,11 +88,19 @@ export function useAuth() {
         email,
         password,
         options: {
+          emailRedirectTo: undefined,
           data: {
             full_name: email.split('@')[0]
           }
         }
       });
+      
+      if (!error) {
+        return { 
+          error: null, 
+          message: 'Cuenta creada exitosamente. Ya puedes iniciar sesión.' 
+        };
+      }
       
       return { error };
     } catch (error) {

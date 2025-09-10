@@ -9,6 +9,7 @@ export function AuthForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   
   const { signIn, signUp } = useAuth();
 
@@ -16,14 +17,22 @@ export function AuthForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
 
     try {
-      const { error } = isLogin 
+      const result = isLogin 
         ? await signIn(email, password)
         : await signUp(email, password);
 
-      if (error) {
-        setError(error.message);
+      if (result.error) {
+        setError(result.error.message);
+      } else if (!isLogin && result.message) {
+        setSuccess(result.message);
+        // Switch to login tab after successful registration
+        setTimeout(() => {
+          setIsLogin(true);
+          setSuccess(null);
+        }, 2000);
       }
     } catch (err) {
       setError('Ocurrió un error inesperado');
@@ -73,6 +82,12 @@ export function AuthForm() {
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm">
+              {success}
             </div>
           )}
 
