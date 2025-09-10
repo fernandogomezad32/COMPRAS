@@ -398,11 +398,11 @@ export function Reports() {
                         {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
                       </div>
                       <div className="text-xl font-bold text-gray-900 mt-1">
-                        {typeof value === 'number' && key.toLowerCase().includes('amount') || key.toLowerCase().includes('revenue') || key.toLowerCase().includes('value') || key.toLowerCase().includes('cost')
+                        {typeof value === 'number' && (key.toLowerCase().includes('amount') || key.toLowerCase().includes('revenue') || key.toLowerCase().includes('value') || key.toLowerCase().includes('cost'))
                           ? `$${value.toLocaleString()}`
-                          : typeof value === 'number' && key.toLowerCase().includes('percentage') || key.toLowerCase().includes('margin')
+                          : typeof value === 'number' && (key.toLowerCase().includes('percentage') || key.toLowerCase().includes('margin'))
                           ? `${value.toFixed(1)}%`
-                          : value?.toLocaleString()
+                          : typeof value === 'number' ? value.toLocaleString() : value
                         }
                       </div>
                     </div>
