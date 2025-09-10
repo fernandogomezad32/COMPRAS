@@ -42,12 +42,61 @@ export const userService = {
       .from('user_profiles')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching user role:', error);
+      return 'employee'; // Default role
+    }
+    
     return data?.role || 'employee';
   },
 
+  async createProfileForAuthUser(
+    userId: string,
+    email: string,
+    fullName: string,
+    role: 'super_admin' | 'admin' | 'employee' = 'employee'
+  ): Promise<UserProfile> {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .insert({
+        id: userId,
+        email,
+        full_name: fullName,
+        role,
+        status: 'active',
+        created_by: null
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async ensureUserProfile(user: any): Promise<void> {
+    try {
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        // Create profile for user
+        await this.createProfileForAuthUser(
+          user.id,
+          user.email,
+          user.user_metadata?.full_name || user.email.split('@')[0],
+          'employee'
+        );
+      }
+    } catch (error) {
+      console.error('Error ensuring user profile:', error);
+    }
+  },
   async create(userData: {
     email: string;
     password: string;

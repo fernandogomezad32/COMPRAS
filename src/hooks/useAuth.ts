@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { userService } from '../services/userService';
 import type { User } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -33,6 +34,11 @@ export function useAuth() {
       async (event, session) => {
         try {
           setUser(session?.user ?? null);
+          
+          // Ensure user profile exists when user signs in
+          if (session?.user && event === 'SIGNED_IN') {
+            await userService.ensureUserProfile(session.user);
+          }
         } catch (error) {
           setUser(null);
         } finally {
@@ -53,10 +59,26 @@ export function useAuth() {
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
+    
+    // Create user profile after successful signup
+    if (data.user && !error) {
+      try {
+        await userService.createProfileForAuthUser(
+          data.user.id,
+          email,
+          email.split('@')[0], // Use email prefix as default name
+          'employee'
+        );
+      } catch (profileError) {
+        console.error('Error creating user profile:', profileError);
+        // Don't throw error here to avoid breaking the signup flow
+      }
+    }
+    
     return { error };
   };
 
