@@ -399,10 +399,10 @@ export function Reports() {
                       </div>
                       <div className="text-xl font-bold text-gray-900 mt-1">
                         {typeof value === 'number' && (key.toLowerCase().includes('amount') || key.toLowerCase().includes('revenue') || key.toLowerCase().includes('value') || key.toLowerCase().includes('cost'))
-                          ? `$${value?.toLocaleString() || '0'}`
+                          ? `$${(value ?? 0).toLocaleString()}`
                           : typeof value === 'number' && (key.toLowerCase().includes('percentage') || key.toLowerCase().includes('margin'))
-                          ? `${value?.toFixed(1) || '0'}%`
-                          : typeof value === 'number' ? value?.toLocaleString() || '0' : value || 'N/A'
+                          ? `${(value ?? 0).toFixed(1)}%`
+                          : typeof value === 'number' ? (value ?? 0).toLocaleString() : value || 'N/A'
                         }
                       </div>
                     </div>
