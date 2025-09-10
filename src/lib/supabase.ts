@@ -287,6 +287,8 @@ export type Database = {
           return_date: string;
           created_at: string;
           updated_at: string;
+        }
+      }
       invoice_config: {
         Row: {
           id: string;
