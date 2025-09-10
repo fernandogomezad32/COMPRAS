@@ -766,10 +766,10 @@ export function Reports() {
                       <tr key={saleItem.id} className="hover:bg-gray-50 transition-colors">
                                 {saleItem.customer?.name || saleItem.customer_name || 'Cliente anónimo'}
                           <div className="text-sm font-medium text-gray-900">
-                            {sale.customer?.name || sale.customer_name}
+                            {saleItem.customer?.name || saleItem.customer_name}
                                 Factura: {saleItem.invoice_number}
                           <div className="text-sm text-gray-500">
-                            {sale.customer?.email || sale.customer_email}
+                            {saleItem.customer?.email || saleItem.customer_email}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
