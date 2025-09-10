@@ -409,6 +409,158 @@ export type Database = {
           updated_at?: string;
         };
       };
+      user_profiles: {
+        Row: {
+          id: string;
+          email: string;
+          full_name: string;
+          role: string;
+          status: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          email: string;
+          full_name: string;
+          role?: string;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          full_name?: string;
+          role?: string;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      installment_sales: {
+        Row: {
+          id: string;
+          customer_id: string;
+          total_amount: number;
+          paid_amount: number;
+          remaining_amount: number;
+          installment_type: string;
+          installment_amount: number;
+          installment_count: number;
+          paid_installments: number;
+          start_date: string;
+          next_payment_date: string;
+          status: string;
+          notes: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          total_amount: number;
+          paid_amount?: number;
+          remaining_amount: number;
+          installment_type: string;
+          installment_amount: number;
+          installment_count: number;
+          paid_installments?: number;
+          start_date: string;
+          next_payment_date: string;
+          status?: string;
+          notes?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          customer_id?: string;
+          total_amount?: number;
+          paid_amount?: number;
+          remaining_amount?: number;
+          installment_type?: string;
+          installment_amount?: number;
+          installment_count?: number;
+          paid_installments?: number;
+          start_date?: string;
+          next_payment_date?: string;
+          status?: string;
+          notes?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      installment_sale_items: {
+        Row: {
+          id: string;
+          installment_sale_id: string;
+          product_id: string;
+          quantity: number;
+          unit_price: number;
+          total_price: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          installment_sale_id: string;
+          product_id: string;
+          quantity: number;
+          unit_price: number;
+          total_price: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          installment_sale_id?: string;
+          product_id?: string;
+          quantity?: number;
+          unit_price?: number;
+          total_price?: number;
+          created_at?: string;
+        };
+      };
+      installment_payments: {
+        Row: {
+          id: string;
+          installment_sale_id: string;
+          payment_number: number;
+          amount: number;
+          payment_date: string;
+          payment_method: string;
+          notes: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          installment_sale_id: string;
+          payment_number: number;
+          amount: number;
+          payment_date: string;
+          payment_method: string;
+          notes?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          installment_sale_id?: string;
+          payment_number?: number;
+          amount?: number;
+          payment_date?: string;
+          payment_method?: string;
+          notes?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+      };
     };
   };
 };
