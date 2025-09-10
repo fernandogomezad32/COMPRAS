@@ -88,8 +88,24 @@ export const userService = {
 
   async ensureUserProfile(user: any): Promise<void> {
     try {
-      // Try to create profile directly - if it exists, it will fail silently
-      // This avoids the recursive SELECT query that was causing issues
+      // Check if profile already exists first
+      const { data: existingProfile, error: selectError } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (selectError) {
+        console.error('Error checking existing user profile:', selectError);
+        return;
+      }
+
+      // If profile already exists, skip creation
+      if (existingProfile) {
+        return;
+      }
+
+      // Create profile only if it doesn't exist
       try {
         await this.createProfileForAuthUser(
           user.id,
@@ -98,7 +114,7 @@ export const userService = {
           'employee'
         );
       } catch (profileError: any) {
-        // If profile already exists, that's fine - ignore the error
+        // Handle any remaining creation errors
         if (profileError?.code !== '23505') { // 23505 is unique constraint violation
           console.error('Error creating user profile:', profileError);
         }
