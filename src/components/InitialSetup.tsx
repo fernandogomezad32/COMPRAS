@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Crown, Mail, Lock, User, Eye, EyeOff, Shield } from 'lucide-react';
-import { userService } from '../services/userService';
+import { supabase } from '../lib/supabase';
 
 interface InitialSetupProps {
   onComplete: () => void;
@@ -32,15 +32,53 @@ export function InitialSetup({ onComplete }: InitialSetupProps) {
         throw new Error('La contraseña debe tener al menos 6 caracteres');
       }
 
-      await userService.createInitialSuperAdmin(
+      // Crear el super admin usando signUp normal y luego actualizar el rol
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+      if (!data.user) throw new Error('Error al crear el usuario');
+
+      // Crear el perfil de super admin directamente
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: data.user.id,
+          email: formData.email,
+          full_name: formData.fullName,
+          role: 'super_admin',
+          status: 'active'
+        });
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        // Intentar eliminar el usuario de auth si falló crear el perfil
+        await supabase.auth.admin.deleteUser(data.user.id);
+        throw new Error('Error al crear el perfil de usuario');
+      }
+
+      // Hacer login automático
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         formData.email,
-        formData.password,
-        formData.fullName
-      );
+        password: formData.password
+      });
+
+      if (signInError) {
+        console.error('Error signing in after creation:', signInError);
+        // No lanzar error aquí, el usuario puede hacer login manualmente
+      }
 
       alert('Super administrador creado exitosamente. Ahora puedes iniciar sesión.');
       onComplete();
     } catch (err: any) {
+      console.error('Error in initial setup:', err);
       setError(err.message || 'Error al crear el super administrador');
     } finally {
       setLoading(false);

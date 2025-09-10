@@ -9,15 +9,29 @@ export function useAuth() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [needsInitialSetup, setNeedsInitialSetup] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
+      const timeout = setTimeout(() => {
+        setError('Timeout al cargar la sesión');
+        setLoading(false);
+      }, 10000); // 10 segundos timeout
+
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error && error.message.includes('refresh_token_not_found')) {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        clearTimeout(timeout);
+        
+        if (sessionError && sessionError.message.includes('refresh_token_not_found')) {
           // Token expirado, limpiar sesión silenciosamente
           await supabase.auth.signOut();
+          setUser(null);
+          setUserProfile(null);
+        } else if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          setError('Error al obtener la sesión');
           setUser(null);
           setUserProfile(null);
         } else {
@@ -34,14 +48,27 @@ export function useAuth() {
         }
 
         // Check if initial setup is needed
-        const { count } = await supabase
-          .from('user_profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'super_admin');
+        try {
+          const { count, error: countError } = await supabase
+            .from('user_profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('role', 'super_admin');
 
-        setNeedsInitialSetup(!count || count === 0);
+          if (countError) {
+            console.error('Error checking super admin count:', countError);
+            setNeedsInitialSetup(true);
+          } else {
+            setNeedsInitialSetup(!count || count === 0);
+          }
+        } catch (error) {
+          console.error('Error checking initial setup:', error);
+          setNeedsInitialSetup(true);
+        }
       } catch (error) {
+        clearTimeout(timeout);
         // En caso de error, asegurar que el usuario esté deslogueado
+        console.error('Error in getInitialSession:', error);
+        setError('Error al inicializar la aplicación');
         setUser(null);
         setUserProfile(null);
         setNeedsInitialSetup(true);
@@ -69,6 +96,7 @@ export function useAuth() {
             setUserProfile(null);
           }
         } catch (error) {
+          console.error('Error in auth state change:', error);
           setUser(null);
           setUserProfile(null);
         } finally {
@@ -81,25 +109,40 @@ export function useAuth() {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (error) {
+      console.error('Error signing in:', error);
+      return { error: { message: 'Error al iniciar sesión' } };
+    }
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      return { error };
+    } catch (error) {
+      console.error('Error signing up:', error);
+      return { error: { message: 'Error al registrarse' } };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    setUserProfile(null);
-    return { error };
+    try {
+      const { error } = await supabase.auth.signOut();
+      setUserProfile(null);
+      return { error };
+    } catch (error) {
+      console.error('Error signing out:', error);
+      return { error: { message: 'Error al cerrar sesión' } };
+    }
   };
 
   return {
@@ -107,6 +150,7 @@ export function useAuth() {
     userProfile,
     needsInitialSetup,
     loading,
+    error,
     signIn,
     signUp,
     signOut,

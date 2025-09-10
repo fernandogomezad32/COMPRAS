@@ -212,28 +212,51 @@ export const userService = {
   },
 
   async createInitialSuperAdmin(email: string, password: string, fullName: string): Promise<void> {
-    // Verificar que no existan super admins
-    const { count } = await supabase
-      .from('user_profiles')
-      .select('*', { count: 'exact', head: true })
-      .eq('role', 'super_admin');
+    try {
+      // Verificar que no existan super admins
+      const { count, error: countError } = await supabase
+        .from('user_profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'super_admin');
 
-    if (count && count > 0) {
-      throw new Error('Ya existe un super administrador en el sistema');
-    }
-
-    // Crear el primer super admin
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: fullName,
-        role: 'super_admin'
+      if (countError) {
+        console.error('Error checking super admin count:', countError);
+        throw new Error('Error al verificar super administradores existentes');
       }
-    });
 
-    if (authError) throw authError;
-    if (!authData.user) throw new Error('Error al crear el super administrador');
+      if (count && count > 0) {
+        throw new Error('Ya existe un super administrador en el sistema');
+      }
+
+      // Crear el primer super admin usando signUp
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName
+          }
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Error al crear el super administrador');
+        }
+      // Crear el perfil manualmente
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .insert({
+          id: authData.user.id,
+          email,
+          full_name: fullName,
+          role: 'super_admin',
+          status: 'active'
+        });
+      });
+      if (profileError) {
+        console.error('Error creating super admin profile:', profileError);
+        throw new Error('Error al crear el perfil de super administrador');
+      }
+    } catch (error) {
+      console.error('Error in createInitialSuperAdmin:', error);
+      throw error;
+    }
   }
 };
