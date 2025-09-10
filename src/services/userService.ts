@@ -20,7 +20,10 @@ export const userService = {
       .eq('id', user.id)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
+    }
     return data;
   },
 
@@ -206,5 +209,31 @@ export const userService = {
       canManageUsers: currentUser?.role === 'super_admin',
       userRole: currentUser?.role || null
     };
+  },
+
+  async createInitialSuperAdmin(email: string, password: string, fullName: string): Promise<void> {
+    // Verificar que no existan super admins
+    const { count } = await supabase
+      .from('user_profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'super_admin');
+
+    if (count && count > 0) {
+      throw new Error('Ya existe un super administrador en el sistema');
+    }
+
+    // Crear el primer super admin
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        role: 'super_admin'
+      }
+    });
+
+    if (authError) throw authError;
+    if (!authData.user) throw new Error('Error al crear el super administrador');
   }
 };

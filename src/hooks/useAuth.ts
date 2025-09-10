@@ -7,6 +7,7 @@ import type { UserProfile } from '../types';
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [needsInitialSetup, setNeedsInitialSetup] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,10 +32,19 @@ export function useAuth() {
             }
           }
         }
+
+        // Check if initial setup is needed
+        const { count } = await supabase
+          .from('user_profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'super_admin');
+
+        setNeedsInitialSetup(!count || count === 0);
       } catch (error) {
         // En caso de error, asegurar que el usuario esté deslogueado
         setUser(null);
         setUserProfile(null);
+        setNeedsInitialSetup(true);
       } finally {
         setLoading(false);
       }
@@ -95,6 +105,7 @@ export function useAuth() {
   return {
     user,
     userProfile,
+    needsInitialSetup,
     loading,
     signIn,
     signUp,
