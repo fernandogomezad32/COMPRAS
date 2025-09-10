@@ -8,28 +8,33 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error && error.message.includes('refresh_token_not_found')) {
-          // Token expirado, limpiar sesión silenciosamente
-          await supabase.auth.signOut();
+        
+        if (!mounted) return;
+
+        if (error) {
+          console.error('Session error:', error);
+          if (error.message.includes('refresh_token_not_found')) {
+            await supabase.auth.signOut();
+          }
           setUser(null);
         } else {
           setUser(session?.user ?? null);
-          
-          // Ensure user profile exists when user is found
-          if (session?.user) {
-            await userService.ensureUserProfile(session.user);
-          }
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
-        // En caso de error, asegurar que el usuario esté deslogueado
-        setUser(null);
+        if (mounted) {
+          setUser(null);
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -38,51 +43,70 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+
         try {
           setUser(session?.user ?? null);
           
           // Ensure user profile exists when user signs in
           if (session?.user && event === 'SIGNED_IN') {
-            await userService.ensureUserProfile(session.user);
+            // Don't await this to avoid blocking the auth flow
+            userService.ensureUserProfile(session.user).catch(error => {
+              console.error('Error ensuring user profile:', error);
+            });
           }
         } catch (error) {
-          setUser(null);
-        } finally {
-          setLoading(false);
+          console.error('Auth state change error:', error);
+          if (mounted) {
+            setUser(null);
+          }
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (error) {
+      return { error };
+    }
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: email.split('@')[0]
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: email.split('@')[0]
+          }
         }
-      }
-    });
-    
-    // User profile will be created automatically by database trigger
-    
-    return { error };
+      });
+      
+      return { error };
+    } catch (error) {
+      return { error };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      const { error } = await supabase.auth.signOut();
+      return { error };
+    } catch (error) {
+      return { error };
+    }
   };
 
   return {

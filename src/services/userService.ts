@@ -78,11 +78,16 @@ export const userService = {
   async ensureUserProfile(user: any): Promise<void> {
     try {
       // Check if profile exists
-      const { data: existingProfile } = await supabase
+      const { data: existingProfile, error: checkError } = await supabase
         .from('user_profiles')
         .select('id')
         .eq('id', user.id)
         .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking user profile:', checkError);
+        return; // Don't throw to avoid breaking auth flow
+      }
 
       if (!existingProfile) {
         // Create profile for user
@@ -95,12 +100,13 @@ export const userService = {
           );
         } catch (profileError) {
           console.error('Error creating user profile:', profileError);
-          // Don't throw error to avoid breaking auth flow
+          // Try alternative approach - let the database trigger handle it
+          return;
         }
       }
     } catch (error) {
       console.error('Error ensuring user profile:', error);
-      // Don't throw error to avoid breaking auth flow
+      // Don't throw to avoid breaking auth flow
     }
   },
   async create(userData: {
