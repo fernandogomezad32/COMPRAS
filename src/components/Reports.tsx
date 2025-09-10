@@ -763,30 +763,30 @@ export function Reports() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {sales.slice(0, 10).map((sale) => (
-                      <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                      <tr key={saleItem.id} className="hover:bg-gray-50 transition-colors">
+                                {saleItem.customer?.name || saleItem.customer_name || 'Cliente anónimo'}
                           <div className="text-sm font-medium text-gray-900">
                             {sale.customer?.name || sale.customer_name}
-                          </div>
+                                Factura: {saleItem.invoice_number}
                           <div className="text-sm text-gray-500">
                             {sale.customer?.email || sale.customer_email}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            ${sale.total.toLocaleString()}
+                            ${saleItem.total.toLocaleString()}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {sale.sale_items?.length || 0} productos
+                            Subtotal: ${saleItem.subtotal.toLocaleString()}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {sale.payment_method === 'cash' ? '💵 Efectivo' :
-                             sale.payment_method === 'card' ? '💳 Tarjeta' :
-                             sale.payment_method === 'nequi' ? '📱 NEQUI' :
-                             sale.payment_method === 'daviplata' ? '📱 DAVIPLATA' :
-                             sale.payment_method === 'bancolombia' ? '📱 BANCOLOMBIA' :
+                            {saleItem.payment_method === 'cash' ? '💵 Efectivo' :
+                             saleItem.payment_method === 'card' ? '💳 Tarjeta' :
+                             saleItem.payment_method === 'nequi' ? '📱 NEQUI' :
+                             saleItem.payment_method === 'daviplata' ? '📱 DAVIPLATA' :
+                             saleItem.payment_method === 'bancolombia' ? '📱 BANCOLOMBIA' :
                              sale.payment_method === 'transfer' ? '📱 Transferencia' :
                              sale.payment_method}
                           </span>
@@ -802,19 +802,19 @@ export function Reports() {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
+                          {format(new Date(saleItem.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
                             <button
-                              onClick={() => handleEditSale(sale)}
+                              onClick={() => onEditSale(saleItem)}
                               className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteSale(sale.id)}
-                              className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                              onClick={() => onDeleteSale(saleItem.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
