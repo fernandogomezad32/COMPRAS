@@ -13,8 +13,7 @@ import {
   Store,
   RotateCcw,
   FileText,
-  Calendar,
-  Shield
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -26,7 +25,7 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { signOut, user, userProfile } = useAuth();
+  const { signOut, user } = useAuth();
 
   const navigation = [
     { id: 'dashboard', name: 'Dashboard', icon: Home },
@@ -39,9 +38,6 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
     { id: 'returns', name: 'Devoluciones', icon: RotateCcw },
     { id: 'invoices', name: 'Facturas', icon: FileText },
     { id: 'reports', name: 'Reportes', icon: BarChart3 },
-    ...(userProfile?.role === 'super_admin' ? [
-      { id: 'users', name: 'Usuarios', icon: Shield }
-    ] : []),
   ];
 
   const handleSignOut = async () => {
@@ -175,14 +171,8 @@ function SidebarContent({ navigation, activeTab, onTabChange, onSignOut, user, o
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {userProfile?.full_name || user?.email}
+              {user?.email}
             </p>
-            {userProfile && (
-              <p className="text-xs text-gray-500">
-                {userProfile.role === 'super_admin' ? '👑 Super Admin' :
-                 userProfile.role === 'admin' ? '🛡️ Administrador' : '👤 Empleado'}
-              </p>
-            )}
           </div>
         </div>
         <button

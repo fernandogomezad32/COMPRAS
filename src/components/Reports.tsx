@@ -3,302 +3,432 @@ import {
   BarChart3, 
   Download, 
   Calendar,
-  Package,
-  Users,
-  Building,
   DollarSign,
-  TrendingUp,
-  AlertTriangle,
-  ShoppingCart
+  Package,
+  ShoppingCart,
+  Users,
+  Plus,
+  Edit2,
+  Trash2,
+  Star,
+  FileText,
+  FileText as FileTextIcon,
+  Filter,
+  Clock
 } from 'lucide-react';
-import { saleService } from '../services/saleService';
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
-import { supplierService } from '../services/supplierService';
-import { returnService } from '../services/returnService';
+import { saleService } from '../services/saleService';
+import { SaleForm } from './SaleForm';
+import { categoryService } from '../services/categoryService';
 import { installmentService } from '../services/installmentService';
-import * as XLSX from 'xlsx';
-import { format } from 'date-fns';
+import { InstallmentSalesReport } from './InstallmentSalesReport';
+import { reportService } from '../services/reportService';
+import type { Sale, Product, Customer, Report, InstallmentSale } from '../types';
+import { ReportForm } from './ReportForm';
+import { format, startOfDay, endOfDay, startOfWeek, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+import * as XLSX from 'xlsx';
 
 export function Reports() {
-  const [activeTab, setActiveTab] = useState('sales');
-  const [dateRange, setDateRange] = useState({
-    start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0]
-  });
-  const [loading, setLoading] = useState(false);
-  const [reportData, setReportData] = useState<any>(null);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [installmentSales, setInstallmentSales] = useState<InstallmentSale[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [activeSubTab, setActiveSubTab] = useState('regular');
+  const [customerStats, setCustomerStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [dateFilter, setDateFilter] = useState('today');
+  const [showForm, setShowForm] = useState(false);
+  const [showSaleForm, setShowSaleForm] = useState(false);
+  const [editingReport, setEditingReport] = useState<Report | null>(null);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [activeTab, setActiveTab] = useState<'analytics' | 'installments' | 'saved'>('analytics');
 
-  const reportTypes = [
-    { id: 'sales', name: 'Ventas', icon: ShoppingCart },
-    { id: 'inventory', name: 'Inventario', icon: Package },
-    { id: 'customers', name: 'Clientes', icon: Users },
-    { id: 'suppliers', name: 'Proveedores', icon: Building },
-    { id: 'returns', name: 'Devoluciones', icon: BarChart3 },
-    { id: 'installments', name: 'Ventas por Abonos', icon: Calendar }
-  ];
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const generateReport = async () => {
-    setLoading(true);
+  const loadData = async () => {
     try {
-      let data;
-      
-      switch (activeTab) {
-        case 'sales':
-          data = await generateSalesReport();
-          break;
-        case 'inventory':
-          data = await generateInventoryReport();
-          break;
-        case 'customers':
-          data = await generateCustomersReport();
-          break;
-        case 'suppliers':
-          data = await generateSuppliersReport();
-          break;
-        case 'returns':
-          data = await generateReturnsReport();
-          break;
-        case 'installments':
-          data = await generateInstallmentsReport();
-          break;
-        default:
-          data = null;
-      }
-      
-      setReportData(data);
+      const [salesData, installmentSalesData, productsData, categoriesData, customerStatsData, reportsData] = await Promise.all([
+        saleService.getAll(),
+        installmentService.getAll(),
+        productService.getAll(),
+        categoryService.getAll(),
+        customerService.getStats(),
+        reportService.getAll()
+      ]);
+      setSales(salesData);
+      setInstallmentSales(installmentSalesData);
+      setProducts(productsData);
+      setCategories(categoriesData);
+      setCustomerStats(customerStatsData);
+      setReports(reportsData);
     } catch (error) {
-      console.error('Error generating report:', error);
-      alert('Error al generar el reporte');
+      console.error('Error loading reports data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const generateSalesReport = async () => {
-    const sales = await saleService.getAll();
-    const filteredSales = sales.filter(sale => {
-      const saleDate = new Date(sale.created_at).toISOString().split('T')[0];
-      return saleDate >= dateRange.start && saleDate <= dateRange.end;
-    });
-
-    const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
-    const totalSales = filteredSales.length;
-    const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
-
-    // Ventas por día
-    const salesByDay = filteredSales.reduce((acc, sale) => {
-      const day = new Date(sale.created_at).toISOString().split('T')[0];
-      acc[day] = (acc[day] || 0) + sale.total;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Productos más vendidos
-    const productSales = filteredSales.flatMap(sale => sale.sale_items || []);
-    const productStats = productSales.reduce((acc, item) => {
-      const productName = item.product?.name || 'Producto eliminado';
-      if (!acc[productName]) {
-        acc[productName] = { quantity: 0, revenue: 0 };
-      }
-      acc[productName].quantity += item.quantity;
-      acc[productName].revenue += item.total_price;
-      return acc;
-    }, {} as Record<string, { quantity: number; revenue: number }>);
-
-    const topProducts = Object.entries(productStats)
-      .sort(([,a], [,b]) => b.revenue - a.revenue)
-      .slice(0, 10);
-
-    return {
-      type: 'sales',
-      summary: {
-        totalRevenue,
-        totalSales,
-        averageSale,
-        period: `${format(new Date(dateRange.start), 'dd/MM/yyyy', { locale: es })} - ${format(new Date(dateRange.end), 'dd/MM/yyyy', { locale: es })}`
-      },
-      details: filteredSales,
-      charts: {
-        salesByDay,
-        topProducts
-      }
-    };
+  const handleEditReport = (report: Report) => {
+    setEditingReport(report);
+    setShowForm(true);
   };
 
-  const generateInventoryReport = async () => {
-    const products = await productService.getAll();
-    const lowStockProducts = await productService.getLowStock();
-    
-    const totalProducts = products.length;
-    const activeProducts = products.filter(p => p.status === 'active').length;
-    const totalValue = products.reduce((sum, p) => sum + (p.price * p.stock_quantity), 0);
-    const totalCost = products.reduce((sum, p) => sum + (p.cost * p.stock_quantity), 0);
-
-    // Productos por categoría
-    const productsByCategory = products.reduce((acc, product) => {
-      const categoryName = product.category?.name || 'Sin categoría';
-      if (!acc[categoryName]) {
-        acc[categoryName] = { count: 0, value: 0 };
-      }
-      acc[categoryName].count += 1;
-      acc[categoryName].value += product.price * product.stock_quantity;
-      return acc;
-    }, {} as Record<string, { count: number; value: number }>);
-
-    return {
-      type: 'inventory',
-      summary: {
-        totalProducts,
-        activeProducts,
-        lowStockCount: lowStockProducts.length,
-        totalValue,
-        totalCost,
-        profitMargin: totalValue > 0 ? ((totalValue - totalCost) / totalValue * 100) : 0
-      },
-      details: products,
-      lowStock: lowStockProducts,
-      charts: {
-        productsByCategory
-      }
-    };
+  const handleEditSale = (sale: Sale) => {
+    setEditingSale(sale);
+    setShowSaleForm(true);
   };
 
-  const generateCustomersReport = async () => {
-    const customers = await customerService.getAll();
-    const sales = await saleService.getAll();
-    
-    // Estadísticas por cliente
-    const customerStats = customers.map(customer => {
-      const customerSales = sales.filter(sale => sale.customer_id === customer.id);
-      const totalPurchases = customerSales.length;
-      const totalSpent = customerSales.reduce((sum, sale) => sum + sale.total, 0);
-      const lastPurchase = customerSales.length > 0 
-        ? customerSales.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
-        : null;
-      
-      return {
-        ...customer,
-        totalPurchases,
-        totalSpent,
-        averagePurchase: totalPurchases > 0 ? totalSpent / totalPurchases : 0,
-        lastPurchase
-      };
-    });
-
-    const topCustomers = customerStats
-      .sort((a, b) => b.totalSpent - a.totalSpent)
-      .slice(0, 10);
-
-    return {
-      type: 'customers',
-      summary: {
-        totalCustomers: customers.length,
-        businessCustomers: customers.filter(c => c.customer_type === 'business').length,
-        individualCustomers: customers.filter(c => c.customer_type === 'individual').length,
-        customersWithPurchases: customerStats.filter(c => c.totalPurchases > 0).length
-      },
-      details: customerStats,
-      topCustomers
-    };
-  };
-
-  const generateSuppliersReport = async () => {
-    const suppliers = await supplierService.getAll();
-    const products = await productService.getAll();
-    
-    const supplierStats = suppliers.map(supplier => {
-      const supplierProducts = products.filter(p => p.supplier_id === supplier.id);
-      const totalProducts = supplierProducts.length;
-      const totalValue = supplierProducts.reduce((sum, p) => sum + (p.price * p.stock_quantity), 0);
-      
-      return {
-        ...supplier,
-        totalProducts,
-        totalValue
-      };
-    });
-
-    return {
-      type: 'suppliers',
-      summary: {
-        totalSuppliers: suppliers.length,
-        activeSuppliers: suppliers.filter(s => s.status === 'active').length,
-        inactiveSuppliers: suppliers.filter(s => s.status === 'inactive').length
-      },
-      details: supplierStats
-    };
-  };
-
-  const generateReturnsReport = async () => {
-    const returns = await returnService.getAll();
-    const stats = await returnService.getStats();
-    
-    const filteredReturns = returns.filter(returnItem => {
-      const returnDate = new Date(returnItem.return_date).toISOString().split('T')[0];
-      return returnDate >= dateRange.start && returnDate <= dateRange.end;
-    });
-
-    return {
-      type: 'returns',
-      summary: {
-        totalReturns: filteredReturns.length,
-        totalRefundAmount: filteredReturns.reduce((sum, r) => sum + r.refund_amount, 0),
-        pendingReturns: filteredReturns.filter(r => r.status === 'pending').length,
-        completedReturns: filteredReturns.filter(r => r.status === 'completed').length
-      },
-      details: filteredReturns,
-      stats
-    };
-  };
-
-  const generateInstallmentsReport = async () => {
-    const installments = await installmentService.getAll();
-    const stats = await installmentService.getStats();
-    
-    const filteredInstallments = installments.filter(installment => {
-      const installmentDate = new Date(installment.created_at).toISOString().split('T')[0];
-      return installmentDate >= dateRange.start && installmentDate <= dateRange.end;
-    });
-
-    return {
-      type: 'installments',
-      summary: {
-        totalInstallments: filteredInstallments.length,
-        totalAmountFinanced: filteredInstallments.reduce((sum, i) => sum + i.total_amount, 0),
-        totalAmountPaid: filteredInstallments.reduce((sum, i) => sum + i.paid_amount, 0),
-        activeInstallments: filteredInstallments.filter(i => i.status === 'active').length
-      },
-      details: filteredInstallments,
-      stats
-    };
-  };
-
-  const exportToExcel = () => {
-    if (!reportData) return;
-
-    const wb = XLSX.utils.book_new();
-    
-    // Hoja de resumen
-    const summaryData = Object.entries(reportData.summary).map(([key, value]) => ({
-      Métrica: key,
-      Valor: value
-    }));
-    
-    const summaryWs = XLSX.utils.json_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, summaryWs, 'Resumen');
-
-    // Hoja de detalles
-    if (reportData.details && reportData.details.length > 0) {
-      const detailsWs = XLSX.utils.json_to_sheet(reportData.details);
-      XLSX.utils.book_append_sheet(wb, detailsWs, 'Detalles');
+  const handleDeleteSale = async (saleId: string) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar esta venta? Esta acción restaurará el stock de los productos.')) {
+      return;
     }
 
-    // Nombre del archivo
-    const fileName = `reporte_${activeTab}_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.xlsx`;
+    try {
+      await saleService.delete(saleId);
+      await loadData();
+      alert('Venta eliminada exitosamente');
+    } catch (error: any) {
+      console.error('Error deleting sale:', error);
+      alert('Error al eliminar la venta: ' + (error.message || 'Error desconocido'));
+    }
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este reporte?')) {
+      return;
+    }
+
+    try {
+      await reportService.delete(reportId);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      alert('Error al eliminar el reporte');
+    }
+  };
+
+  const handleToggleFavorite = async (reportId: string, isFavorite: boolean) => {
+    try {
+      await reportService.toggleFavorite(reportId, !isFavorite);
+      await loadData();
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
+  const handleFormSubmit = async () => {
+    setShowForm(false);
+    setEditingReport(null);
+    await loadData();
+  };
+
+  const handleSaleFormSubmit = async () => {
+    setShowSaleForm(false);
+    setEditingSale(null);
+    await loadData();
+  };
+
+  const getFilteredSales = () => {
+    const now = new Date();
+    let startDate: Date;
+
+    switch (dateFilter) {
+      case 'today':
+        startDate = startOfDay(now);
+        break;
+      case 'week':
+        startDate = startOfWeek(now, { weekStartsOn: 1 });
+        break;
+      case 'month':
+        startDate = startOfMonth(now);
+        break;
+      default:
+        return sales;
+    }
+
+    return sales.filter(sale => 
+      new Date(sale.created_at) >= startDate
+    );
+  };
+
+  const generateStats = () => {
+    const filteredSales = getFilteredSales();
+    const revenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
+    const profit = filteredSales.reduce((sum, sale) => {
+      const saleProfit = sale.sale_items?.reduce((itemSum, item) => {
+        const product = products.find(p => p.id === item.product_id);
+        const itemProfit = product ? (item.unit_price - product.cost) * item.quantity : 0;
+        return itemSum + itemProfit;
+      }, 0) || 0;
+      return sum + saleProfit;
+    }, 0);
+
+    const topProducts = products
+      .map(product => {
+        const sold = filteredSales.reduce((sum, sale) => {
+          const saleItems = sale.sale_items?.filter(item => item.product_id === product.id) || [];
+          return sum + saleItems.reduce((itemSum, item) => itemSum + item.quantity, 0);
+        }, 0);
+          const revenue = filteredSales.reduce((sum, sale) => {
+            const saleItems = sale.sale_items?.filter(item => item.product_id === product.id) || [];
+            return sum + saleItems.reduce((itemSum, item) => itemSum + item.total_price, 0);
+          }, 0);
+          return { ...product, soldQuantity: sold, revenue };
+      })
+        .filter(product => product.soldQuantity > 0)
+        .sort((a, b) => b.soldQuantity - a.soldQuantity);
+
+    const allSoldProducts = topProducts;
+
+    return {
+      totalSales: filteredSales.length,
+      revenue,
+      profit,
+      topProducts: topProducts.slice(0, 5),
+      allSoldProducts
+    };
+  };
+
+  const stats = generateStats();
+
+  const exportToExcel = () => {
+    const filteredSales = getFilteredSales();
+    const soldProducts = stats.allSoldProducts;
+    const lowStockProducts = products.filter(p => p.stock_quantity <= p.min_stock);
+    const categoriesWithProducts = categories.map(cat => ({
+      ...cat,
+      productCount: products.filter(p => p.category_id === cat.id).length
+    }));
     
+    // Crear workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Hoja 1: Resumen de ventas
+    const summaryData = [
+      ['Reporte de Ventas'],
+      ['Período:', dateFilter === 'today' ? 'Hoy' : dateFilter === 'week' ? 'Esta Semana' : dateFilter === 'month' ? 'Este Mes' : 'Todo el Tiempo'],
+      ['Fecha de generación:', format(new Date(), 'dd/MM/yyyy HH:mm', { locale: es })],
+      [],
+      ['RESUMEN'],
+      ['Total de ventas:', stats.totalSales],
+      ['Ingresos totales:', `$${stats.revenue.toLocaleString()}`],
+      ['Ganancia total:', `$${stats.profit.toLocaleString()}`],
+      ['Productos vendidos:', soldProducts.length],
+      ['Total productos en inventario:', products.length],
+      ['Productos con stock bajo:', lowStockProducts.length],
+      ['Total clientes:', customerStats?.totalCustomers || 0],
+      ['Total categorías:', categories.length],
+      []
+    ];
+    
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
+    
+    // Hoja 2: Productos vendidos
+    const productsData = [
+      ['PRODUCTOS VENDIDOS'],
+      [],
+      ['Producto', 'Descripción', 'Categoría', 'Proveedor', 'Precio Unitario', 'Costo', 'Cantidad Vendida', 'Stock Actual', 'Stock Mínimo', 'Ingresos Generados', 'Ganancia Total', 'Estado Stock']
+    ];
+    
+    soldProducts.forEach(product => {
+      const profit = (product.price - product.cost) * product.soldQuantity;
+      const stockStatus = product.stock_quantity <= product.min_stock ? 'STOCK BAJO' : 'NORMAL';
+      productsData.push([
+        product.name,
+        product.description || '',
+        product.category?.name || 'Sin categoría',
+        product.supplier?.name || 'Sin proveedor',
+        product.price,
+        product.cost,
+        product.soldQuantity,
+        product.stock_quantity,
+        product.min_stock,
+        product.revenue,
+        profit,
+        stockStatus
+      ]);
+    });
+    
+    const ws2 = XLSX.utils.aoa_to_sheet(productsData);
+    XLSX.utils.book_append_sheet(wb, ws2, 'Productos Vendidos');
+    
+    // Hoja 3: Ventas detalladas
+    const salesData = [
+      ['VENTAS DETALLADAS'],
+      [],
+      ['Fecha', 'Número Factura', 'Código Barras', 'Cliente', 'Tipo Cliente', 'Email', 'Teléfono', 'Método Pago', 'Estado', 'Subtotal', 'Descuento', 'Ganancia', 'Total', 'Recibido', 'Cambio', 'Productos', 'Devoluciones']
+    ];
+    
+    filteredSales.forEach(sale => {
+      // Calcular ganancia de la venta
+      const saleProfit = sale.sale_items?.reduce((itemSum, item) => {
+        const product = products.find(p => p.id === item.product_id);
+        if (!product) return itemSum;
+        const itemProfit = (item.unit_price - product.cost) * item.quantity;
+        return itemSum + itemProfit;
+      }, 0) || 0;
+      
+      const finalProfit = saleProfit - (sale.discount_amount || 0);
+      
+      const productsText = sale.sale_items?.map(item => 
+        `${item.product?.name || 'Producto eliminado'} x${item.quantity}`
+      ).join(', ') || 'Sin productos';
+      
+      const discountText = sale.discount_type === 'none' || !sale.discount_amount 
+        ? '0' 
+        : sale.discount_type === 'percentage' 
+          ? `${sale.discount_percentage}% ($${sale.discount_amount})`
+          : `$${sale.discount_amount}`;
+      
+      // Información de devoluciones
+      const totalReturned = sale.sale_items?.reduce((sum, item) => {
+        return sum + (item.returns?.reduce((returnSum, ret) => 
+          returnSum + ret.quantity_returned, 0) || 0);
+      }, 0) || 0;
+      
+      const returnsText = totalReturned > 0 ? `${totalReturned} productos devueltos` : 'Sin devoluciones';
+      
+      salesData.push([
+        format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es }),
+        sale.invoice_number || 'Sin número',
+        sale.invoice_barcode || 'Sin código',
+        sale.customer?.name || sale.customer_name || 'Cliente anónimo',
+        sale.customer ? (sale.customer.customer_type === 'business' ? 'Empresa' : 'Individual') : 'Anónimo',
+        sale.customer?.email || sale.customer_email || '',
+        sale.customer?.phone || '',
+        sale.payment_method,
+        sale.status === 'completed' ? 'Completada' : sale.status === 'pending' ? 'Pendiente' : 'Cancelada',
+        sale.subtotal,
+        discountText,
+        finalProfit,
+        sale.total,
+        sale.amount_received || 0,
+        sale.change_amount || 0,
+        productsText,
+        returnsText
+      ]);
+    });
+    
+    const ws3 = XLSX.utils.aoa_to_sheet(salesData);
+    XLSX.utils.book_append_sheet(wb, ws3, 'Ventas Detalladas');
+    
+    // Hoja 4: Inventario completo
+    const inventoryData = [
+      ['INVENTARIO COMPLETO'],
+      [],
+      ['Producto', 'Descripción', 'Categoría', 'Proveedor', 'Código Proveedor', 'Código Barras', 'Precio Venta', 'Costo', 'Stock Actual', 'Stock Mínimo', 'Estado Stock', 'Estado Producto', 'Fecha Creación']
+    ];
+    
+    products.forEach(product => {
+      const stockStatus = product.stock_quantity <= product.min_stock ? 'STOCK BAJO' : 'NORMAL';
+      inventoryData.push([
+        product.name,
+        product.description || '',
+        product.category?.name || 'Sin categoría',
+        product.supplier?.name || 'Sin proveedor',
+        product.supplier_code || '',
+        product.barcode || '',
+        product.price,
+        product.cost,
+        product.stock_quantity,
+        product.min_stock,
+        stockStatus,
+        product.status === 'active' ? 'ACTIVO' : 'INACTIVO',
+        format(new Date(product.created_at), 'dd/MM/yyyy', { locale: es })
+      ]);
+    });
+    
+    const ws4 = XLSX.utils.aoa_to_sheet(inventoryData);
+    XLSX.utils.book_append_sheet(wb, ws4, 'Inventario Completo');
+    
+    // Hoja 5: Clientes
+    const customersData = [
+      ['CLIENTES'],
+      [],
+      ['Nombre', 'Tipo', 'Email', 'Teléfono', 'Ciudad', 'Dirección', 'RFC/ID Fiscal', 'Fecha Registro', 'Notas']
+    ];
+    
+    customerStats?.topCustomers?.forEach((customer: any) => {
+      customersData.push([
+        customer.name,
+        customer.customer_type === 'business' ? 'Empresa' : 'Individual',
+        customer.email || '',
+        customer.phone || '',
+        customer.city || '',
+        customer.address || '',
+        customer.tax_id || '',
+        format(new Date(customer.created_at), 'dd/MM/yyyy', { locale: es }),
+        customer.notes || ''
+      ]);
+    });
+    
+    const ws5 = XLSX.utils.aoa_to_sheet(customersData);
+    XLSX.utils.book_append_sheet(wb, ws5, 'Clientes');
+    
+    // Hoja 6: Categorías
+    const categoriesData = [
+      ['CATEGORÍAS'],
+      [],
+      ['Nombre', 'Descripción', 'Productos Asociados', 'Fecha Creación']
+    ];
+    
+    categoriesWithProducts.forEach(category => {
+      categoriesData.push([
+        category.name,
+        category.description || '',
+        category.productCount,
+        format(new Date(category.created_at), 'dd/MM/yyyy', { locale: es })
+      ]);
+    });
+    
+    const ws6 = XLSX.utils.aoa_to_sheet(categoriesData);
+    XLSX.utils.book_append_sheet(wb, ws6, 'Categorías');
+    
+    // Hoja 7: Productos con stock bajo
+    if (lowStockProducts.length > 0) {
+      const lowStockData = [
+        ['PRODUCTOS CON STOCK BAJO'],
+        [],
+        ['Producto', 'Categoría', 'Stock Actual', 'Stock Mínimo', 'Diferencia', 'Precio', 'Proveedor', 'Estado']
+      ];
+      
+      lowStockProducts.forEach(product => {
+        const difference = product.min_stock - product.stock_quantity;
+        lowStockData.push([
+          product.name,
+          product.category?.name || 'Sin categoría',
+          product.stock_quantity,
+          product.min_stock,
+          difference,
+          product.price,
+          product.supplier?.name || 'Sin proveedor',
+          product.status === 'active' ? 'ACTIVO' : 'INACTIVO'
+        ]);
+      });
+      
+      const ws7 = XLSX.utils.aoa_to_sheet(lowStockData);
+      XLSX.utils.book_append_sheet(wb, ws7, 'Stock Bajo');
+    }
+    // Generar nombre del archivo
+    const fileName = `reporte_completo_ventaspro_${dateFilter}_${format(new Date(), 'yyyy-MM-dd_HH-mm', { locale: es })}.xlsx`;
+    
+    // Descargar archivo
     XLSX.writeFile(wb, fileName);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -306,300 +436,943 @@ export function Reports() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Reportes</h1>
-          <p className="text-gray-600 mt-1">Genera reportes detallados de tu negocio</p>
+          <p className="text-gray-600 mt-1">Analiza el rendimiento de tu negocio</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Nuevo Reporte</span>
+          </button>
         </div>
       </div>
 
-      {/* Tabs de tipos de reporte */}
+      {/* Tabs */}
       <div className="bg-white rounded-xl shadow-md">
         <div className="border-b border-gray-200">
           <nav className="flex space-x-8 px-6">
-            {reportTypes.map((type) => {
-              const Icon = type.icon;
-              return (
-                <button
-                  key={type.id}
-                  onClick={() => setActiveTab(type.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === type.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Icon className="h-4 w-4" />
-                    <span>{type.name}</span>
-                  </div>
-                </button>
-              );
-            })}
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'analytics'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="h-4 w-4" />
+                <span>Análisis</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('installments')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'installments'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-4 w-4" />
+                <span>Ventas por Abonos</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('saved')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'saved'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <FileText className="h-4 w-4" />
+                <span>Reportes Guardados ({reports.length})</span>
+              </div>
+            </button>
           </nav>
         </div>
+      </div>
 
-        {/* Configuración del reporte */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div>
-              <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha Inicio
-              </label>
-              <input
-                type="date"
-                id="start_date"
-                value={dateRange.start}
-                onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha Fin
-              </label>
-              <input
-                type="date"
-                id="end_date"
-                value={dateRange.end}
-                onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={generateReport}
-                disabled={loading}
-                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
-              >
-                <BarChart3 className="h-5 w-5" />
-                <span>{loading ? 'Generando...' : 'Generar Reporte'}</span>
-              </button>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={exportToExcel}
-                disabled={!reportData}
-                className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
-              >
-                <Download className="h-5 w-5" />
-                <span>Exportar Excel</span>
-              </button>
+      {activeTab === 'analytics' && (
+        <>
+          {/* Filtros para análisis */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Filtros de Análisis</h2>
+              <div className="flex items-center space-x-4">
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="today">Hoy</option>
+                  <option value="week">Esta Semana</option>
+                  <option value="month">Este Mes</option>
+                  <option value="all">Todo el Tiempo</option>
+                </select>
+                <button 
+                  onClick={exportToExcel}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Exportar</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Contenido del reporte */}
-          {reportData && (
-            <div className="space-y-6">
-              {/* Resumen */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumen Ejecutivo</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {Object.entries(reportData.summary).map(([key, value]) => (
-                    <div key={key} className="bg-white rounded-lg p-4 border border-gray-200">
-                      <div className="text-sm text-gray-600 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Ventas</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-2">{stats.totalSales}</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
+                  <ShoppingCart className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Ingresos</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-2">${stats.revenue.toLocaleString()}</p>
+                </div>
+                <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Ganancia</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-2">${stats.profit.toLocaleString()}</p>
+                </div>
+                <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Clientes</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-2">{customerStats?.totalCustomers || 0}</p>
+                </div>
+                <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+                  <Users className="h-6 w-6 text-orange-600" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Productos Vendidos */}
+          <div className="bg-white rounded-xl shadow-md">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Productos Vendidos</h2>
+                <span className="text-sm text-gray-500">
+                  {stats.allSoldProducts.length} productos vendidos
+                </span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Producto
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Categoría
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Precio Unitario
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cantidad Vendida
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Stock Actual
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ingresos Generados
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {stats.allSoldProducts.map((product, index) => (
+                    <tr key={product.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Package className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                            <div className="text-sm text-gray-500 truncate max-w-xs">{product.description}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {product.category?.name || 'Sin categoría'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${product.price.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className="text-lg font-bold text-blue-600">{product.soldQuantity}</span>
+                          <span className="text-sm text-gray-500 ml-1">unidades</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`text-sm font-medium ${
+                          product.stock_quantity <= product.min_stock 
+                            ? 'text-red-600' 
+                            : 'text-gray-900'
+                        }`}>
+                          {product.stock_quantity} unidades
+                        </span>
+                        {product.stock_quantity <= product.min_stock && (
+                          <div className="text-xs text-red-500">Stock bajo</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="text-lg font-bold text-green-600">
+                          ${product.revenue.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Ganancia: ${((product.price - product.cost) * product.soldQuantity).toLocaleString()}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {stats.allSoldProducts.length === 0 && (
+              <div className="text-center py-12">
+                <Package className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No hay productos vendidos</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  No se encontraron productos vendidos para el período seleccionado.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Top Customers */}
+          {customerStats?.topCustomers && customerStats.topCustomers.length > 0 && (
+            <div className="bg-white rounded-xl shadow-md">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Mejores Clientes</h2>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  {customerStats.topCustomers.map((customer: any, index: number) => (
+                    <div key={customer.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                          <div className="text-sm text-gray-500">{customer.email}</div>
+                        </div>
                       </div>
-                      <div className="text-xl font-bold text-gray-900 mt-1">
-                        {typeof value === 'number' && (key.toLowerCase().includes('amount') || key.toLowerCase().includes('revenue') || key.toLowerCase().includes('value') || key.toLowerCase().includes('cost'))
-                          ? `$${(value ?? 0).toLocaleString()}`
-                          : typeof value === 'number' && (key.toLowerCase().includes('percentage') || key.toLowerCase().includes('margin'))
-                          ? `${(value ?? 0).toFixed(1)}%`
-                          : typeof value === 'number' ? (value ?? 0).toLocaleString() : value || 'N/A'
-                        }
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900">${customer.totalSpent?.toLocaleString() || 0}</div>
+                        <div className="text-sm text-gray-500">{customer.totalOrders || 0} compras</div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-
-              {/* Gráficos y datos específicos por tipo */}
-              {activeTab === 'sales' && reportData.charts && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Productos más vendidos */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Productos Más Vendidos</h4>
-                    <div className="space-y-3">
-                      {reportData.charts.topProducts.slice(0, 5).map(([product, stats]: [string, any], index: number) => (
-                        <div key={product} className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <span className="text-blue-600 font-bold text-sm">{index + 1}</span>
-                            </div>
-                            <div>
-                              <div className="font-medium text-gray-900">{product}</div>
-                              <div className="text-sm text-gray-500">{stats.quantity} unidades</div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold text-green-600">${stats.revenue.toLocaleString()}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Ventas por día */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Ventas por Día</h4>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {Object.entries(reportData.charts.salesByDay)
-                        .sort(([a], [b]) => b.localeCompare(a))
-                        .slice(0, 10)
-                        .map(([date, amount]: [string, any]) => (
-                        <div key={date} className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-sm text-gray-600">
-                            {format(new Date(date), 'dd/MM/yyyy', { locale: es })}
-                          </span>
-                          <span className="font-medium text-gray-900">${amount.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tabla de detalles */}
-              <div className="bg-white rounded-lg border border-gray-200">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h4 className="text-lg font-semibold text-gray-900">Datos Detallados</h4>
-                </div>
-                <div className="overflow-x-auto max-h-96">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        {activeTab === 'sales' && (
-                          <>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Método Pago</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                          </>
-                        )}
-                        {activeTab === 'inventory' && (
-                          <>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor Total</th>
-                          </>
-                        )}
-                        {activeTab === 'customers' && (
-                          <>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compras</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Gastado</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Última Compra</th>
-                          </>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {reportData.details.slice(0, 50).map((item: any, index: number) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          {activeTab === 'sales' && (
-                            <>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {item.customer?.name || item.customer_name || 'Cliente anónimo'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                ${item.total.toLocaleString()}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.payment_method}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {format(new Date(item.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
-                              </td>
-                            </>
-                          )}
-                          {activeTab === 'inventory' && (
-                            <>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {item.name}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.category?.name || 'Sin categoría'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <span className={item.stock_quantity <= item.min_stock ? 'text-red-600 font-medium' : ''}>
-                                  {item.stock_quantity}
-                                </span>
-                                {item.stock_quantity <= item.min_stock && (
-                                  <AlertTriangle className="inline h-4 w-4 text-red-500 ml-1" />
-                                )}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                ${item.price.toLocaleString()}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                ${(item.price * item.stock_quantity).toLocaleString()}
-                              </td>
-                            </>
-                          )}
-                          {activeTab === 'customers' && (
-                            <>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {item.name}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.customer_type === 'business' ? 'Empresa' : 'Persona'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {item.totalPurchases || 0}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                ${(item.totalSpent || 0).toLocaleString()}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.lastPurchase 
-                                  ? format(new Date(item.lastPurchase), 'dd/MM/yyyy', { locale: es })
-                                  : 'Nunca'
-                                }
-                              </td>
-                            </>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Alertas específicas */}
-              {activeTab === 'inventory' && reportData.lowStock && reportData.lowStock.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
-                    <h4 className="text-lg font-semibold text-red-900">Productos con Stock Bajo</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {reportData.lowStock.slice(0, 6).map((product: any) => (
-                      <div key={product.id} className="bg-white rounded-lg p-4 border border-red-200">
-                        <div className="font-medium text-gray-900">{product.name}</div>
-                        <div className="text-sm text-red-600">
-                          Stock: {product.stock_quantity} / Mínimo: {product.min_stock}
-                        </div>
-                        <div className="text-sm text-gray-500">${product.price.toLocaleString()}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Estado inicial */}
-          {!reportData && (
+          {/* Ventas Recientes */}
+          <div className="bg-white rounded-xl shadow-md">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Ventas Recientes</h2>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setActiveSubTab('regular')}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      activeSubTab === 'regular'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Regulares ({sales.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveSubTab('installments')}
+                    className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                      activeSubTab === 'installments'
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Por Abonos ({installmentSales.length})
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {activeSubTab === 'regular' ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Cliente
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Total
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Método de Pago
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Estado
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Fecha
+                      </th>
+                      <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {sales.slice(0, 10).map((sale) => (
+                      <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {sale.customer?.name || sale.customer_name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {sale.customer?.email || sale.customer_email}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            ${sale.total.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {sale.sale_items?.length || 0} productos
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {sale.payment_method === 'cash' ? '💵 Efectivo' :
+                             sale.payment_method === 'card' ? '💳 Tarjeta' :
+                             sale.payment_method === 'nequi' ? '📱 NEQUI' :
+                             sale.payment_method === 'daviplata' ? '📱 DAVIPLATA' :
+                             sale.payment_method === 'bancolombia' ? '📱 BANCOLOMBIA' :
+                             sale.payment_method === 'transfer' ? '📱 Transferencia' :
+                             sale.payment_method}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            sale.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {sale.status === 'completed' ? 'Completada' :
+                             sale.status === 'pending' ? 'Pendiente' : 'Cancelada'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end space-x-2">
+                            <button
+                              onClick={() => handleEditSale(sale)}
+                              className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSale(sale.id)}
+                              className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Cliente
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Plan de Abonos
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Progreso
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Montos
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Estado
+                      </th>
+                      <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        Fecha Creación
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {installmentSales.slice(0, 10).map((sale) => {
+                      const progressPercentage = (sale.paid_amount / sale.total_amount) * 100;
+                      const isOverdue = new Date(sale.next_payment_date) < new Date() && sale.status === 'active';
+                      
+                      return (
+                        <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                <Users className="h-5 w-5 text-purple-600" />
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {sale.customer?.name || 'Cliente eliminado'}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {sale.customer?.email || sale.customer?.phone || 'Sin contacto'}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              <div className="font-medium">
+                                {sale.installment_count} abonos {
+                                  sale.installment_type === 'daily' ? 'diarios' :
+                                  sale.installment_type === 'weekly' ? 'semanales' : 'mensuales'
+                                }
+                              </div>
+                              <div className="text-gray-500">
+                                ${sale.installment_amount.toLocaleString()} por abono
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">
+                                  {sale.paid_installments} / {sale.installment_count}
+                                </span>
+                                <span className="font-medium">
+                                  {progressPercentage.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all ${
+                                    progressPercentage === 100 ? 'bg-green-500' :
+                                    progressPercentage >= 75 ? 'bg-blue-500' :
+                                    progressPercentage >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}
+                                  style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm">
+                              <div className="text-gray-900 font-medium">
+                                Total: ${sale.total_amount.toLocaleString()}
+                              </div>
+                              <div className="text-green-600">
+                                Pagado: ${sale.paid_amount.toLocaleString()}
+                              </div>
+                              <div className="text-orange-600">
+                                Pendiente: ${sale.remaining_amount.toLocaleString()}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              sale.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                              sale.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              sale.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {sale.status === 'active' ? <Clock className="h-3 w-3" /> :
+                               sale.status === 'completed' ? <CheckCircle className="h-3 w-3" /> :
+                               sale.status === 'overdue' ? <AlertTriangle className="h-3 w-3" /> :
+                               <XCircle className="h-3 w-3" />}
+                              <span>
+                                {sale.status === 'active' ? 'Activa' :
+                                 sale.status === 'completed' ? 'Completada' :
+                                 sale.status === 'overdue' ? 'Vencida' : 'Cancelada'}
+                              </span>
+                              {isOverdue && <span className="text-red-600">⚠️</span>}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            {((activeSubTab === 'regular' && sales.length === 0) || 
+              (activeSubTab === 'installments' && installmentSales.length === 0)) && (
+              <div className="text-center py-12">
+                {activeSubTab === 'regular' ? (
+                  <>
+                    <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No hay ventas regulares</h3>
+                    <p className="mt-1 text-sm text-gray-500">Las ventas aparecerán aquí una vez que se realicen.</p>
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No hay ventas por abonos</h3>
+                    <p className="mt-1 text-sm text-gray-500">Las ventas por abonos aparecerán aquí una vez que se creen.</p>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Análisis Detallado de Ventas */}
+          <div className="bg-white rounded-xl shadow-md">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Análisis Detallado de Ventas</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Fecha
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Factura
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cliente
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Productos Vendidos
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tipo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Método de Pago
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Estado
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pago
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Subtotal
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Descuento
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ganancia
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Total
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                      Ventas por Abono
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Devoluciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {getFilteredSales().slice(0, 10).map((sale) => {
+                    // Calcular ganancia de la venta
+                    const saleProfit = sale.sale_items?.reduce((itemSum, item) => {
+                      const product = products.find(p => p.id === item.product_id);
+                      if (!product) return itemSum;
+                      const itemProfit = (item.unit_price - product.cost) * item.quantity;
+                      return itemSum + itemProfit;
+                    }, 0) || 0;
+                    
+                    // Ajustar ganancia por descuento aplicado
+                    const finalProfit = saleProfit - (sale.discount_amount || 0);
+                    const isProfitable = finalProfit >= 0;
+                    
+                    // Verificar si hay devoluciones para esta venta
+                    const hasReturns = sale.sale_items?.some(item => 
+                      item.returns && item.returns.length > 0
+                    ) || false;
+                    
+                    const totalReturned = sale.sale_items?.reduce((sum, item) => {
+                      return sum + (item.returns?.reduce((returnSum, ret) => 
+                        returnSum + ret.quantity_returned, 0) || 0);
+                    }, 0) || 0;
+                    
+                    return (
+                    <tr key={sale.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {sale.invoice_number || 'Sin número'}
+                        </div>
+                        {sale.invoice_barcode && (
+                          <div className="text-xs text-gray-500 font-mono">
+                            {sale.invoice_barcode}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {sale.customer?.name || sale.customer_name || 'Cliente anónimo'}
+                        </div>
+                        {(sale.customer?.email || sale.customer_email) && (
+                          <div className="text-sm text-gray-500">{sale.customer?.email || sale.customer_email}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="max-w-xs">
+                          {sale.sale_items && sale.sale_items.length > 0 ? (
+                            <div className="space-y-1">
+                              {sale.sale_items.slice(0, 3).map((item, index) => (
+                                <div key={index} className={`text-xs rounded px-2 py-1 ${
+                                  item.returns && item.returns.length > 0 
+                                    ? 'bg-orange-100 border border-orange-200' 
+                                    : 'bg-gray-100'
+                                }`}>
+                                  <span className="font-medium">{item.product?.name || 'Producto eliminado'}</span>
+                                  <span className="text-gray-600 ml-1">x{item.quantity}</span>
+                                  {item.returns && item.returns.length > 0 && (
+                                    <span className="text-orange-600 ml-1">
+                                      (Dev: {item.returns.reduce((sum, ret) => sum + ret.quantity_returned, 0)})
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                              {sale.sale_items.length > 3 && (
+                                <div className="text-xs text-gray-500">
+                                  +{sale.sale_items.length - 3} más...
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">Sin productos</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {sale.customer ? (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            sale.customer.customer_type === 'business'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {sale.customer.customer_type === 'business' ? 'Empresa' : 'Individual'}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Anónimo
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+                          sale.payment_method === 'cash' ? 'bg-green-100 text-green-800' :
+                          sale.payment_method === 'card' ? 'bg-blue-100 text-blue-800' :
+                          ['nequi', 'daviplata', 'bancolombia', 'transfer'].includes(sale.payment_method) ? 'bg-purple-100 text-purple-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {sale.payment_method === 'nequi' ? '📱 NEQUI' :
+                           sale.payment_method === 'daviplata' ? '📱 DAVIPLATA' :
+                           sale.payment_method === 'bancolombia' ? '📱 BANCOLOMBIA' :
+                           sale.payment_method === 'transfer' ? '📱 Transferencia' :
+                           sale.payment_method === 'cash' ? '💵 Efectivo' :
+                           sale.payment_method === 'card' ? '💳 Tarjeta' :
+                           sale.payment_method}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          sale.status === 'completed' 
+                            ? 'bg-green-100 text-green-800'
+                            : sale.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {sale.status === 'completed' ? 'Completada' : 
+                           sale.status === 'pending' ? 'Pendiente' : 'Cancelada'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {sale.payment_method === 'cash' && sale.amount_received > 0 ? (
+                          <div className="text-sm">
+                            <div className="text-gray-900">Recibido: ${sale.amount_received.toLocaleString()}</div>
+                            {sale.change_amount > 0 && (
+                              <div className="text-orange-600">Cambio: ${sale.change_amount.toLocaleString()}</div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
+                        ${sale.subtotal.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        {sale.discount_amount > 0 ? (
+                          <div className="text-red-600 font-medium">
+                            {sale.discount_type === 'percentage' 
+                              ? `${sale.discount_percentage}%` 
+                              : `$${sale.discount_amount.toLocaleString()}`
+                            }
+                            <div className="text-xs text-gray-500">
+                              -${sale.discount_amount.toLocaleString()}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                        <div className={`font-medium ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                          ${finalProfit.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {isProfitable ? 'Ganancia' : 'Pérdida'}
+                        </div>
+                        {!isProfitable && (
+                          <div className="text-xs text-red-500 font-medium">
+                            ⚠️ Descuento excesivo
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
+                        ${sale.total.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {hasReturns ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              🔄 {totalReturned} devueltos
+                            </span>
+                            <div className="text-xs text-gray-500">
+                              Ver devoluciones
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Sin devoluciones</span>
+                        )}
+                      </td>
+                    </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {getFilteredSales().length === 0 && (
+              <div className="text-center py-12">
+                <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No hay ventas</h3>
+                <p className="mt-1 text-sm text-gray-500">No se encontraron ventas para el período seleccionado.</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'installments' && (
+        <InstallmentSalesReport 
+          dateFilter={dateFilter}
+          onEditSale={handleEditSale}
+          onDeleteSale={handleDeleteSale}
+        />
+      )}
+
+      {activeTab === 'saved' && (
+        <div className="bg-white rounded-xl shadow-md">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Reportes Guardados</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reporte
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tipo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Período
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Creado
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {reports.map((report) => (
+                  <tr key={report.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <FileText className="h-8 w-8 text-blue-500" />
+                        </div>
+                        <div className="ml-4">
+                          <div className="flex items-center space-x-2">
+                            <div className="text-sm font-medium text-gray-900">{report.name}</div>
+                            {report.is_favorite && (
+                              <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500">{report.description}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {sale.customer_id ? (
+                        <div className="text-sm">
+                          <div className="text-blue-600 font-medium">
+                            {installmentSales.filter(inst => inst.customer_id === sale.customer_id).length} activas
+                          </div>
+                          <div className="text-gray-500 text-xs">
+                            ${installmentSales
+                              .filter(inst => inst.customer_id === sale.customer_id && inst.status === 'active')
+                              .reduce((sum, inst) => sum + inst.remaining_amount, 0)
+                              .toLocaleString()} pendiente
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                        {report.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {report.date_range.period === 'custom' 
+                        ? `${report.date_range.start_date} - ${report.date_range.end_date}`
+                        : report.date_range.period
+                      }
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {format(new Date(report.created_at), 'dd/MM/yyyy', { locale: es })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleToggleFavorite(report.id, report.is_favorite)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            report.is_favorite
+                              ? 'text-yellow-600 hover:bg-yellow-50'
+                              : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'
+                          }`}
+                        >
+                          <Star className={`h-4 w-4 ${report.is_favorite ? 'fill-current' : ''}`} />
+                        </button>
+                        <button
+                          onClick={() => handleEditReport(report)}
+                          className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteReport(report.id)}
+                          className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {reports.length === 0 && (
             <div className="text-center py-12">
-              <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Selecciona un período y genera tu reporte</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Configura las fechas y haz clic en "Generar Reporte" para ver los datos.
-              </p>
+              <FileText className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No hay reportes guardados</h3>
+              <p className="mt-1 text-sm text-gray-500">Crea tu primer reporte personalizado.</p>
+              <button
+                onClick={() => setShowForm(true)}
+                className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Crear Reporte
+              </button>
             </div>
           )}
         </div>
-      </div>
+      )}
+
+      {/* Modal del formulario */}
+      {showForm && (
+        <ReportForm
+          report={editingReport}
+          onSubmit={handleFormSubmit}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingReport(null);
+          }}
+        />
+      )}
+
+      {/* Modal del formulario de venta */}
+      {showSaleForm && (
+        <SaleForm
+          sale={editingSale}
+          onSubmit={handleSaleFormSubmit}
+          onCancel={() => {
+            setShowSaleForm(false);
+            setEditingSale(null);
+          }}
+        />
+      )}
     </div>
   );
 }

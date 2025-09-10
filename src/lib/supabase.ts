@@ -287,8 +287,44 @@ export type Database = {
           return_date: string;
           created_at: string;
           updated_at: string;
-        }
-      }
+        };
+        Insert: {
+          id?: string;
+          sale_id: string;
+          sale_item_id: string;
+          product_id: string;
+          customer_id?: string | null;
+          quantity_returned: number;
+          reason: string;
+          return_type?: string;
+          condition?: string;
+          refund_amount?: number;
+          status?: string;
+          processed_by?: string | null;
+          notes?: string;
+          return_date?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          sale_id?: string;
+          sale_item_id?: string;
+          product_id?: string;
+          customer_id?: string | null;
+          quantity_returned?: number;
+          reason?: string;
+          return_type?: string;
+          condition?: string;
+          refund_amount?: number;
+          status?: string;
+          processed_by?: string | null;
+          notes?: string;
+          return_date?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       invoice_config: {
         Row: {
           id: string;
@@ -365,38 +401,6 @@ export type Database = {
           barcode_position?: string;
           font_size?: string;
           language?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      user_profiles: {
-        Row: {
-          id: string;
-          email: string;
-          full_name: string;
-          role: string;
-          status: string;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id: string;
-          email: string;
-          full_name: string;
-          role?: string;
-          status?: string;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          email?: string;
-          full_name?: string;
-          role?: string;
-          status?: string;
-          created_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
