@@ -59,25 +59,17 @@ export function useAuth() {
   };
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: email.split('@')[0]
+        }
+      }
     });
     
-    // Create user profile after successful signup
-    if (data.user && !error) {
-      try {
-        await userService.createProfileForAuthUser(
-          data.user.id,
-          email,
-          email.split('@')[0], // Use email prefix as default name
-          'employee'
-        );
-      } catch (profileError) {
-        console.error('Error creating user profile:', profileError);
-        // Don't throw error here to avoid breaking the signup flow
-      }
-    }
+    // User profile will be created automatically by database trigger
     
     return { error };
   };

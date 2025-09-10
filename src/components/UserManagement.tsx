@@ -57,7 +57,7 @@ export function UserManagement() {
       setCurrentUserRole(role);
     } catch (error) {
       console.error('Error loading current user role:', error);
-      // Set default role instead of showing error
+      // If there's an error, assume employee role for safety
       setCurrentUserRole('employee');
     }
   };
