@@ -199,3 +199,15 @@ export interface InstallmentSaleItem {
   created_at: string;
   product?: Product;
 }
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  role: 'super_admin' | 'admin' | 'employee';
+  status: 'active' | 'inactive';
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by_profile?: UserProfile;
+}

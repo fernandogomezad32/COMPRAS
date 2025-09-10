@@ -12,6 +12,7 @@ import { Reports } from './components/Reports';
 import { ReturnsManagement } from './components/ReturnsManagement';
 import { InvoiceSearch } from './components/InvoiceSearch';
 import { InstallmentManagement } from './components/InstallmentManagement';
+import { UserManagement } from './components/UserManagement';
 
 function App() {
   const { user, loading } = useAuth();
@@ -51,6 +52,8 @@ function App() {
         return <InstallmentManagement />;
       case 'invoices':
         return <InvoiceSearch />;
+      case 'users':
+        return <UserManagement />;
       default:
         return <Dashboard />;
     }
