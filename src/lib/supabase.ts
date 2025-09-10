@@ -561,6 +561,50 @@ export type Database = {
           created_at?: string;
         };
       };
+      reports: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          report_type: string;
+          date_range_start: string | null;
+          date_range_end: string | null;
+          filters: any;
+          data: any;
+          status: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string;
+          report_type: string;
+          date_range_start?: string | null;
+          date_range_end?: string | null;
+          filters?: any;
+          data?: any;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string;
+          report_type?: string;
+          date_range_start?: string | null;
+          date_range_end?: string | null;
+          filters?: any;
+          data?: any;
+          status?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 };
