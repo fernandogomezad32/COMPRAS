@@ -66,7 +66,7 @@ export function InitialSetup({ onComplete }: InitialSetupProps) {
 
       // Hacer login automático
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        formData.email,
+        email: formData.email,
         password: formData.password
       });
 

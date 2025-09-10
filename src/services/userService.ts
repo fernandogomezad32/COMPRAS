@@ -236,9 +236,11 @@ export const userService = {
           data: {
             full_name: fullName
           }
+        }
+      });
+
       if (authError) throw authError;
       if (!authData.user) throw new Error('Error al crear el super administrador');
-        }
       // Crear el perfil manualmente
       const { error: profileError } = await supabase
         .from('user_profiles')
@@ -249,7 +251,7 @@ export const userService = {
           role: 'super_admin',
           status: 'active'
         });
-      });
+
       if (profileError) {
         console.error('Error creating super admin profile:', profileError);
         throw new Error('Error al crear el perfil de super administrador');
