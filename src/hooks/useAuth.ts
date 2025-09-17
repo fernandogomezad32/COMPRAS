@@ -98,7 +98,7 @@ export function useAuth() {
       if (!error) {
         return { 
           error: null, 
-          message: 'Cuenta creada exitosamente. Ya puedes iniciar sesión.' 
+          message: 'Cuenta creada exitosamente. Puedes iniciar sesión inmediatamente.' 
         };
       }
       
