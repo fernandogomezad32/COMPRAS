@@ -38,12 +38,13 @@ export const userService = {
     
     if (!user) throw new Error('Usuario no autenticado');
 
-    // Use user metadata first, then fallback to database query
+    // Prioritize user metadata from JWT (faster and avoids RLS recursion)
     const metadataRole = user.user_metadata?.role;
     if (metadataRole && ['super_admin', 'admin', 'employee'].includes(metadataRole)) {
       return metadataRole;
     }
 
+    // Fallback to database query if role not in metadata or invalid
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -52,13 +53,13 @@ export const userService = {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching user role:', error);
-        return 'employee'; // Default role
+        console.error('Error fetching user role from DB:', error);
+        return 'employee'; // Default role in case of error
       }
       
       return data?.role || 'employee';
     } catch (error) {
-      console.error('Error in getCurrentUserRole:', error);
+      console.error('Error in getCurrentUserRole fallback:', error);
       return 'employee';
     }
   },
@@ -69,6 +70,27 @@ export const userService = {
     fullName: string,
     role: 'super_admin' | 'admin' | 'employee' = 'employee'
   ): Promise<UserProfile> {
+    // Update user metadata in auth.users table to include role in JWT
+    try {
+      const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
+        userId,
+        {
+          user_metadata: {
+            full_name: fullName,
+            role: role // Ensure role is set in user_metadata for JWT claims
+          }
+        }
+      );
+
+      if (authUpdateError) {
+        console.error('Error updating auth user metadata:', authUpdateError);
+        // Continue with profile creation even if metadata update fails
+      }
+    } catch (metadataError) {
+      console.error('Error setting user metadata:', metadataError);
+      // Continue with profile creation
+    }
+
     const { data, error } = await supabase
       .from('user_profiles')
       .insert({
@@ -88,7 +110,7 @@ export const userService = {
 
   async ensureUserProfile(user: any): Promise<void> {
     try {
-      // Check if profile already exists first
+      // Check if profile already exists
       const { data: existingProfile, error: selectError } = await supabase
         .from('user_profiles')
         .select('id')
@@ -105,8 +127,24 @@ export const userService = {
         return;
       }
 
-      // Create profile only if it doesn't exist
+      // Create profile with role in JWT metadata
       try {
+        // First ensure the user has role metadata
+        const { error: metadataError } = await supabase.auth.admin.updateUserById(
+          user.id,
+          {
+            user_metadata: {
+              full_name: user.user_metadata?.full_name || user.email.split('@')[0],
+              role: 'employee' // Default role for new users
+            }
+          }
+        );
+
+        if (metadataError) {
+          console.error('Error setting user metadata:', metadataError);
+        }
+
+        // Create the profile
         await this.createProfileForAuthUser(
           user.id,
           user.email,
@@ -123,7 +161,6 @@ export const userService = {
       console.error('Error ensuring user profile:', error);
       // Don't throw to avoid breaking auth flow
     }
-  },
   async create(userData: {
     email: string;
     password: string;
@@ -135,14 +172,15 @@ export const userService = {
     
     if (!currentUser) throw new Error('Usuario no autenticado');
 
-    // Crear usuario en auth
+    // Create user in auth and include role in user_metadata for JWT claims
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: userData.email,
       password: userData.password,
       options: {
         emailRedirectTo: undefined,
         data: {
-          full_name: userData.full_name
+          full_name: userData.full_name,
+          role: userData.role // Ensure role is set in user_metadata on signup
         }
       }
     });
@@ -150,7 +188,7 @@ export const userService = {
     if (authError) throw authError;
     if (!authData.user) throw new Error('Error al crear el usuario');
 
-    // Crear perfil de usuario
+    // Create user profile
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .insert({
@@ -169,6 +207,7 @@ export const userService = {
   },
 
   async update(id: string, updates: Partial<UserProfile>): Promise<UserProfile> {
+    // Update user profile in public.user_profiles table
     const { data, error } = await supabase
       .from('user_profiles')
       .update({
@@ -184,14 +223,30 @@ export const userService = {
     if (!data) {
       throw new Error('El perfil de usuario no fue encontrado o ya no existe.');
     }
+
+    // If role is updated, also update user_metadata in auth.users for JWT claims
+    if (updates.role) {
+      try {
+        const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
+          id,
+          {
+            user_metadata: {
+              role: updates.role // Update role in user_metadata for JWT claims
+            }
+          }
+        );
+        
+        if (authUpdateError) {
+          console.error('Error updating auth user metadata role:', authUpdateError);
+          // Log the error but don't block the profile update
+        }
+      } catch (metadataError) {
+        console.error('Error updating user metadata:', metadataError);
+        // Continue without blocking the profile update
+      }
+    }
     
     return data;
-  },
-
-  async updatePassword(userId: string, newPassword: string): Promise<void> {
-    // Nota: En un entorno de producción, esto requeriría permisos especiales
-    // Por ahora, el usuario tendrá que cambiar su contraseña manualmente
-    throw new Error('Cambio de contraseña no implementado. El usuario debe cambiarla desde su perfil.');
   },
 
   async updateStatus(id: string, status: 'active' | 'inactive'): Promise<UserProfile> {
