@@ -161,7 +161,8 @@ export const userService = {
       console.error('Error ensuring user profile:', error);
       // Don't throw to avoid breaking auth flow
     }
-  }
+  },
+
   async create(userData: {
     email: string;
     password: string;
