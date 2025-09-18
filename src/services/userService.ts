@@ -27,7 +27,7 @@ export const userService = {
       .from('user_profiles')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -177,9 +177,14 @@ export const userService = {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    
+    if (!data) {
+      throw new Error('El perfil de usuario no fue encontrado o ya no existe.');
+    }
+    
     return data;
   },
 
@@ -198,9 +203,14 @@ export const userService = {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    
+    if (!data) {
+      throw new Error('El perfil de usuario no fue encontrado o ya no existe.');
+    }
+    
     return data;
   },
 

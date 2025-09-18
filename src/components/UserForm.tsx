@@ -60,18 +60,30 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
 
       if (user) {
         // Actualizar usuario existente
-        await userService.update(user.id, userData);
+        try {
+          await userService.update(user.id, userData);
+        } catch (updateError: any) {
+          throw new Error(updateError.message || 'Error al actualizar el usuario');
+        }
         
         // Si se proporcionó nueva contraseña, actualizarla
         if (formData.password) {
-          await userService.updatePassword(user.id, formData.password);
+          try {
+            await userService.updatePassword(user.id, formData.password);
+          } catch (passwordError: any) {
+            throw new Error(passwordError.message || 'Error al actualizar la contraseña');
+          }
         }
       } else {
         // Crear nuevo usuario
-        await userService.create({
-          ...userData,
-          password: formData.password
-        });
+        try {
+          await userService.create({
+            ...userData,
+            password: formData.password
+          });
+        } catch (createError: any) {
+          throw new Error(createError.message || 'Error al crear el usuario');
+        }
       }
 
       onSubmit();
