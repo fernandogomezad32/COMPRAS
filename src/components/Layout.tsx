@@ -16,6 +16,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { userService } from '../services/userService';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,7 +26,25 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string>('employee');
   const { signOut, user } = useAuth();
+
+  // Load user role on component mount
+  React.useEffect(() => {
+    const loadUserRole = async () => {
+      try {
+        const role = await userService.getCurrentUserRole();
+        setUserRole(role);
+      } catch (error) {
+        console.error('Error loading user role:', error);
+        setUserRole('employee'); // Default to employee on error
+      }
+    };
+
+    if (user) {
+      loadUserRole();
+    }
+  }, [user]);
 
   const navigation = [
     { id: 'dashboard', name: 'Dashboard', icon: Home },
@@ -41,6 +60,41 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
     { id: 'reports', name: 'Reportes', icon: BarChart3 },
   ];
 
+  // Filter navigation based on user role
+  const getFilteredNavigation = () => {
+    const baseNavigation = [
+      { id: 'dashboard', name: 'Dashboard', icon: Home },
+      { id: 'sales', name: 'Ventas', icon: ShoppingCart },
+      { id: 'invoices', name: 'Facturas', icon: FileText },
+    ];
+
+    const adminNavigation = [
+      { id: 'products', name: 'Productos', icon: Package },
+      { id: 'categories', name: 'Categorías', icon: Tag },
+      { id: 'customers', name: 'Clientes', icon: Users },
+      { id: 'suppliers', name: 'Proveedores', icon: Building },
+      { id: 'installments', name: 'Ventas por Abonos', icon: Calendar },
+      { id: 'returns', name: 'Devoluciones', icon: RotateCcw },
+      { id: 'reports', name: 'Reportes', icon: BarChart3 },
+    ];
+
+    const superAdminNavigation = [
+      { id: 'users', name: 'Usuarios', icon: Users },
+    ];
+
+    switch (userRole) {
+      case 'super_admin':
+        return [...baseNavigation, ...adminNavigation, ...superAdminNavigation];
+      case 'admin':
+        return [...baseNavigation, ...adminNavigation];
+      case 'employee':
+      default:
+        return baseNavigation;
+    }
+  };
+
+  const filteredNavigation = getFilteredNavigation();
+
   const handleSignOut = async () => {
     await signOut();
   };
@@ -53,11 +107,12 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
           <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
           <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl">
             <SidebarContent 
-              navigation={navigation}
+              navigation={filteredNavigation}
               activeTab={activeTab}
               onTabChange={onTabChange}
               onSignOut={handleSignOut}
               user={user}
+              userRole={userRole}
               onClose={() => setSidebarOpen(false)}
             />
           </div>
@@ -68,11 +123,12 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
       <div className="hidden lg:flex lg:flex-shrink-0">
         <div className="w-64 bg-white shadow-lg">
           <SidebarContent 
-            navigation={navigation}
+            navigation={filteredNavigation}
             activeTab={activeTab}
             onTabChange={onTabChange}
             onSignOut={handleSignOut}
             user={user}
+            userRole={userRole}
           />
         </div>
       </div>
@@ -114,10 +170,24 @@ interface SidebarContentProps {
   onTabChange: (tab: string) => void;
   onSignOut: () => void;
   user: any;
+  userRole: string;
   onClose?: () => void;
 }
 
-function SidebarContent({ navigation, activeTab, onTabChange, onSignOut, user, onClose }: SidebarContentProps) {
+function SidebarContent({ navigation, activeTab, onTabChange, onSignOut, user, userRole, onClose }: SidebarContentProps) {
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'super_admin':
+        return <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">Super Admin</span>;
+      case 'admin':
+        return <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Admin</span>;
+      case 'employee':
+        return <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Empleado</span>;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -174,6 +244,9 @@ function SidebarContent({ navigation, activeTab, onTabChange, onSignOut, user, o
             <p className="text-sm font-medium text-gray-900 truncate">
               {user?.email}
             </p>
+            <div className="mt-1">
+              {getRoleBadge(userRole)}
+            </div>
           </div>
         </div>
         <button

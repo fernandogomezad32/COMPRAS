@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { productService } from '../services/productService';
 import { categoryService } from '../services/categoryService';
+import { userService } from '../services/userService';
 import type { Product, Category } from '../types';
 import { ProductForm } from './ProductForm';
 
@@ -22,15 +23,26 @@ export function ProductManagement() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [userRole, setUserRole] = useState<string>('employee');
 
   useEffect(() => {
     loadData();
+    loadUserRole();
   }, []);
 
   useEffect(() => {
     filterProducts();
   }, [products, searchTerm, selectedCategory]);
 
+  const loadUserRole = async () => {
+    try {
+      const role = await userService.getCurrentUserRole();
+      setUserRole(role);
+    } catch (error) {
+      console.error('Error loading user role:', error);
+      setUserRole('employee');
+    }
+  };
   const loadData = async () => {
     try {
       const [productsData, categoriesData] = await Promise.all([
@@ -65,11 +77,20 @@ export function ProductManagement() {
   };
 
   const handleEdit = (product: Product) => {
+    if (userRole === 'employee') {
+      alert('No tienes permisos para editar productos. Contacta a un administrador.');
+      return;
+    }
     setEditingProduct(product);
     setShowForm(true);
   };
 
   const handleDelete = async (productId: string) => {
+    if (userRole === 'employee') {
+      alert('No tienes permisos para eliminar productos. Contacta a un administrador.');
+      return;
+    }
+
     if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) {
       return;
     }
@@ -89,6 +110,7 @@ export function ProductManagement() {
     await loadData();
   };
 
+  const canManageProducts = userRole === 'admin' || userRole === 'super_admin';
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -105,13 +127,15 @@ export function ProductManagement() {
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Productos</h1>
           <p className="text-gray-600 mt-1">Administra tu inventario y productos</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center space-x-2"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Nuevo Producto</span>
-        </button>
+        {canManageProducts && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center space-x-2"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Nuevo Producto</span>
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -168,9 +192,11 @@ export function ProductManagement() {
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
+                {canManageProducts && (
+                  <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -224,22 +250,24 @@ export function ProductManagement() {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => handleEdit(product)}
-                        className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+                  {canManageProducts && (
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleEdit(product)}
+                          className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product.id)}
+                          className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -256,7 +284,7 @@ export function ProductManagement() {
       </div>
 
       {/* Modal del formulario */}
-      {showForm && (
+      {showForm && canManageProducts && (
         <ProductForm
           product={editingProduct}
           categories={categories}

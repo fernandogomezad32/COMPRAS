@@ -11,6 +11,7 @@ import {
   Phone
 } from 'lucide-react';
 import { customerService } from '../services/customerService';
+import { userService } from '../services/userService';
 import type { Customer } from '../types';
 import { CustomerForm } from './CustomerForm';
 import { format } from 'date-fns';
@@ -24,15 +25,26 @@ export function CustomerManagement() {
   const [customerTypeFilter, setCustomerTypeFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [userRole, setUserRole] = useState<string>('employee');
 
   useEffect(() => {
     loadCustomers();
+    loadUserRole();
   }, []);
 
   useEffect(() => {
     filterCustomers();
   }, [customers, searchTerm, customerTypeFilter]);
 
+  const loadUserRole = async () => {
+    try {
+      const role = await userService.getCurrentUserRole();
+      setUserRole(role);
+    } catch (error) {
+      console.error('Error loading user role:', error);
+      setUserRole('employee');
+    }
+  };
   const loadCustomers = async () => {
     try {
       const data = await customerService.getAll();
@@ -63,11 +75,20 @@ export function CustomerManagement() {
   };
 
   const handleEdit = (customer: Customer) => {
+    if (userRole === 'employee') {
+      alert('No tienes permisos para editar clientes. Contacta a un administrador.');
+      return;
+    }
     setEditingCustomer(customer);
     setShowForm(true);
   };
 
   const handleDelete = async (customerId: string) => {
+    if (userRole === 'employee') {
+      alert('No tienes permisos para eliminar clientes. Contacta a un administrador.');
+      return;
+    }
+
     if (!confirm('¿Estás seguro de que quieres eliminar este cliente?')) return;
 
     try {
@@ -84,6 +105,7 @@ export function CustomerManagement() {
     await loadCustomers();
   };
 
+  const canManageCustomers = userRole === 'admin' || userRole === 'super_admin';
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -100,13 +122,15 @@ export function CustomerManagement() {
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Clientes</h1>
           <p className="text-gray-600 mt-1">Administra tu base de clientes</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center space-x-2"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Nuevo Cliente</span>
-        </button>
+        {canManageCustomers && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center space-x-2"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Nuevo Cliente</span>
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -162,9 +186,11 @@ export function CustomerManagement() {
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                   Registro
                 </th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
+                {canManageCustomers && (
+                  <th className="px-6 py-4 text-right text-sm font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -228,22 +254,24 @@ export function CustomerManagement() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {format(new Date(customer.created_at), 'dd/MM/yyyy', { locale: es })}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => handleEdit(customer)}
-                        className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(customer.id)}
-                        className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+                  {canManageCustomers && (
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => handleEdit(customer)}
+                          className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(customer.id)}
+                          className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -265,7 +293,7 @@ export function CustomerManagement() {
       </div>
 
       {/* Modal del formulario */}
-      {showForm && (
+      {showForm && canManageCustomers && (
         <CustomerForm
           customer={editingCustomer}
           onSubmit={handleFormSubmit}
