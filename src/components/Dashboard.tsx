@@ -3,6 +3,7 @@ import { BarChart3, Package, Users, ShoppingCart, TrendingUp, AlertTriangle } fr
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
 import { saleService } from '../services/saleService';
+import { userService } from '../services/userService';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -14,11 +15,22 @@ export default function Dashboard() {
     monthlyRevenue: 0
   });
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string>('employee');
 
   useEffect(() => {
     loadDashboardData();
+    loadUserRole();
   }, []);
 
+  const loadUserRole = async () => {
+    try {
+      const role = await userService.getCurrentUserRole();
+      setUserRole(role);
+    } catch (error) {
+      console.error('Error loading user role:', error);
+      setUserRole('employee');
+    }
+  };
   const loadDashboardData = async () => {
     try {
       const [products, customers, salesStats, lowStockProducts] = await Promise.all([
@@ -60,37 +72,49 @@ export default function Dashboard() {
     );
   }
 
-  const statCards = [
-    {
-      title: 'Total Products',
-      value: stats.totalProducts,
-      icon: Package,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600'
-    },
-    {
-      title: 'Total Customers',
-      value: stats.totalCustomers,
-      icon: Users,
-      color: 'bg-green-500',
-      textColor: 'text-green-600'
-    },
-    {
-      title: 'Total Sales',
-      value: stats.totalSales,
-      icon: ShoppingCart,
-      color: 'bg-purple-500',
-      textColor: 'text-purple-600'
-    },
-    {
-      title: 'Low Stock Items',
-      value: stats.lowStockItems,
-      icon: AlertTriangle,
-      color: 'bg-red-500',
-      textColor: 'text-red-600'
-    }
-  ];
+  const getStatCards = () => {
+    const baseCards = [
+      {
+        title: 'Total Sales',
+        value: stats.totalSales,
+        icon: ShoppingCart,
+        color: 'bg-purple-500',
+        textColor: 'text-purple-600'
+      }
+    ];
 
+    const adminCards = [
+      {
+        title: 'Total Products',
+        value: stats.totalProducts,
+        icon: Package,
+        color: 'bg-blue-500',
+        textColor: 'text-blue-600'
+      },
+      {
+        title: 'Total Customers',
+        value: stats.totalCustomers,
+        icon: Users,
+        color: 'bg-green-500',
+        textColor: 'text-green-600'
+      },
+      {
+        title: 'Low Stock Items',
+        value: stats.lowStockItems,
+        icon: AlertTriangle,
+        color: 'bg-red-500',
+        textColor: 'text-red-600'
+      }
+    ];
+
+    if (userRole === 'employee') {
+      return baseCards;
+    }
+    
+    return [...baseCards, ...adminCards];
+  };
+
+  const statCards = getStatCards();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -147,23 +171,42 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center justify-center space-x-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-3 rounded-lg transition-colors">
-            <Package className="w-5 h-5" />
-            <span>Add Product</span>
-          </button>
-          <button className="flex items-center justify-center space-x-2 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-3 rounded-lg transition-colors">
-            <Users className="w-5 h-5" />
-            <span>Add Customer</span>
-          </button>
-          <button className="flex items-center justify-center space-x-2 bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-3 rounded-lg transition-colors">
-            <ShoppingCart className="w-5 h-5" />
-            <span>New Sale</span>
-          </button>
+      {userRole !== 'employee' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button className="flex items-center justify-center space-x-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-3 rounded-lg transition-colors">
+              <Package className="w-5 h-5" />
+              <span>Add Product</span>
+            </button>
+            <button className="flex items-center justify-center space-x-2 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-3 rounded-lg transition-colors">
+              <Users className="w-5 h-5" />
+              <span>Add Customer</span>
+            </button>
+            <button className="flex items-center justify-center space-x-2 bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-3 rounded-lg transition-colors">
+              <ShoppingCart className="w-5 h-5" />
+              <span>New Sale</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Employee-specific quick actions */}
+      {userRole === 'employee' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button className="flex items-center justify-center space-x-2 bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-3 rounded-lg transition-colors">
+              <ShoppingCart className="w-5 h-5" />
+              <span>Nueva Venta</span>
+            </button>
+            <button className="flex items-center justify-center space-x-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-3 rounded-lg transition-colors">
+              <BarChart3 className="w-5 h-5" />
+              <span>Ver Reportes</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { customerService } from '../services/customerService';
 import { returnService } from '../services/returnService';
 import { installmentService } from '../services/installmentService';
 import { reportService } from '../services/reportService';
+import { userService } from '../services/userService';
 import { ReportForm } from './ReportForm';
 import { InstallmentSalesReport } from './InstallmentSalesReport';
 import type { Sale, Product, Customer, Return, InstallmentSale, Report } from '../types';
@@ -43,10 +44,22 @@ export function Reports() {
   const [loading, setLoading] = useState(true);
   const [showReportForm, setShowReportForm] = useState(false);
   const [editingReport, setEditingReport] = useState<Report | null>(null);
+  const [userRole, setUserRole] = useState<string>('employee');
 
   useEffect(() => {
     loadData();
+    loadUserRole();
   }, []);
+
+  const loadUserRole = async () => {
+    try {
+      const role = await userService.getCurrentUserRole();
+      setUserRole(role);
+    } catch (error) {
+      console.error('Error loading user role:', error);
+      setUserRole('employee');
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -118,6 +131,10 @@ export function Reports() {
   };
 
   const exportToExcel = (data: any[], filename: string) => {
+    if (userRole === 'employee') {
+      alert('No tienes permisos para exportar reportes. Contacta a un administrador.');
+      return;
+    }
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
@@ -125,11 +142,20 @@ export function Reports() {
   };
 
   const handleEditReport = (report: Report) => {
+    if (userRole === 'employee') {
+      alert('No tienes permisos para editar reportes. Contacta a un administrador.');
+      return;
+    }
     setEditingReport(report);
     setShowReportForm(true);
   };
 
   const handleDeleteReport = async (reportId: string) => {
+    if (userRole === 'employee') {
+      alert('No tienes permisos para eliminar reportes. Contacta a un administrador.');
+      return;
+    }
+
     if (!confirm('¿Estás seguro de que quieres eliminar este reporte?')) return;
 
     try {
@@ -146,6 +172,9 @@ export function Reports() {
     setEditingReport(null);
     await loadData();
   };
+
+  const canManageReports = userRole === 'admin' || userRole === 'super_admin';
+  const canExportData = userRole === 'admin' || userRole === 'super_admin';
 
   const renderSalesReport = () => {
     const filteredSales = filterDataByDate(salesData);
@@ -212,15 +241,17 @@ export function Reports() {
         </div>
 
         {/* Export Button */}
-        <div className="flex justify-end">
-          <button
-            onClick={() => exportToExcel(filteredSales, 'reporte_ventas')}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
-          >
-            <Download className="h-5 w-5" />
-            <span>Exportar a Excel</span>
-          </button>
-        </div>
+        {canExportData && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => exportToExcel(filteredSales, 'reporte_ventas')}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+            >
+              <Download className="h-5 w-5" />
+              <span>Exportar a Excel</span>
+            </button>
+          </div>
+        )}
 
         {/* Sales Table */}
         <div className="bg-white rounded-xl shadow-md">
@@ -334,15 +365,17 @@ export function Reports() {
         </div>
 
         {/* Export Button */}
-        <div className="flex justify-end">
-          <button
-            onClick={() => exportToExcel(productsData, 'reporte_inventario')}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
-          >
-            <Download className="h-5 w-5" />
-            <span>Exportar a Excel</span>
-          </button>
-        </div>
+        {canExportData && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => exportToExcel(productsData, 'reporte_inventario')}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+            >
+              <Download className="h-5 w-5" />
+              <span>Exportar a Excel</span>
+            </button>
+          </div>
+        )}
 
         {/* Inventory Table */}
         <div className="bg-white rounded-xl shadow-md">
@@ -453,15 +486,17 @@ export function Reports() {
         </div>
 
         {/* Export Button */}
-        <div className="flex justify-end">
-          <button
-            onClick={() => exportToExcel(customersData, 'reporte_clientes')}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
-          >
-            <Download className="h-5 w-5" />
-            <span>Exportar a Excel</span>
-          </button>
-        </div>
+        {canExportData && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => exportToExcel(customersData, 'reporte_clientes')}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+            >
+              <Download className="h-5 w-5" />
+              <span>Exportar a Excel</span>
+            </button>
+          </div>
+        )}
 
         {/* Customers Table */}
         <div className="bg-white rounded-xl shadow-md">
@@ -559,15 +594,17 @@ export function Reports() {
         </div>
 
         {/* Export Button */}
-        <div className="flex justify-end">
-          <button
-            onClick={() => exportToExcel(filteredReturns, 'reporte_devoluciones')}
-            className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
-          >
-            <Download className="h-5 w-5" />
-            <span>Exportar a Excel</span>
-          </button>
-        </div>
+        {canExportData && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => exportToExcel(filteredReturns, 'reporte_devoluciones')}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+            >
+              <Download className="h-5 w-5" />
+              <span>Exportar a Excel</span>
+            </button>
+          </div>
+        )}
 
         {/* Returns Table */}
         <div className="bg-white rounded-xl shadow-md">
@@ -637,13 +674,15 @@ export function Reports() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">Reportes Guardados</h2>
-          <button
-            onClick={() => setShowReportForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Nuevo Reporte</span>
-          </button>
+          {canManageReports && (
+            <button
+              onClick={() => setShowReportForm(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nuevo Reporte</span>
+            </button>
+          )}
         </div>
 
         {/* Reports List */}
@@ -656,7 +695,9 @@ export function Reports() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Período</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Creado</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                  {canManageReports && (
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -685,22 +726,24 @@ export function Reports() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {format(new Date(report.created_at), 'dd/MM/yyyy', { locale: es })}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => handleEditReport(report)}
-                          className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteReport(report.id)}
-                          className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+                    {canManageReports && (
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={() => handleEditReport(report)}
+                            className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteReport(report.id)}
+                            className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -727,6 +770,29 @@ export function Reports() {
     );
   }
 
+  // Filter available report types based on user role
+  const getAvailableReportTabs = () => {
+    const baseTabs = [
+      { id: 'sales', name: 'Ventas', icon: ShoppingCart }
+    ];
+
+    const adminTabs = [
+      { id: 'inventory', name: 'Inventario', icon: Package },
+      { id: 'customers', name: 'Clientes', icon: Users },
+      { id: 'returns', name: 'Devoluciones', icon: Package },
+      { id: 'installments', name: 'Abonos', icon: Calendar },
+      { id: 'saved', name: 'Reportes Guardados', icon: FileText }
+    ];
+
+    if (userRole === 'employee') {
+      return baseTabs;
+    }
+    
+    return [...baseTabs, ...adminTabs];
+  };
+
+  const availableReportTabs = getAvailableReportTabs();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -738,14 +804,7 @@ export function Reports() {
       {/* Report Type Tabs */}
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="flex flex-wrap gap-2 mb-6">
-          {[
-            { id: 'sales', name: 'Ventas', icon: ShoppingCart },
-            { id: 'inventory', name: 'Inventario', icon: Package },
-            { id: 'customers', name: 'Clientes', icon: Users },
-            { id: 'returns', name: 'Devoluciones', icon: Package },
-            { id: 'installments', name: 'Abonos', icon: Calendar },
-            { id: 'saved', name: 'Reportes Guardados', icon: FileText }
-          ].map((tab) => {
+          {availableReportTabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
@@ -810,20 +869,20 @@ export function Reports() {
 
       {/* Report Content */}
       {activeReport === 'sales' && renderSalesReport()}
-      {activeReport === 'inventory' && renderInventoryReport()}
-      {activeReport === 'customers' && renderCustomersReport()}
-      {activeReport === 'returns' && renderReturnsReport()}
-      {activeReport === 'installments' && (
+      {activeReport === 'inventory' && userRole !== 'employee' && renderInventoryReport()}
+      {activeReport === 'customers' && userRole !== 'employee' && renderCustomersReport()}
+      {activeReport === 'returns' && userRole !== 'employee' && renderReturnsReport()}
+      {activeReport === 'installments' && userRole !== 'employee' && (
         <InstallmentSalesReport 
           dateFilter={dateFilter}
           onEditSale={() => {}}
           onDeleteSale={() => {}}
         />
       )}
-      {activeReport === 'saved' && renderSavedReports()}
+      {activeReport === 'saved' && userRole !== 'employee' && renderSavedReports()}
 
       {/* Report Form Modal */}
-      {showReportForm && (
+      {showReportForm && canManageReports && (
         <ReportForm
           report={editingReport}
           onSubmit={handleFormSubmit}
