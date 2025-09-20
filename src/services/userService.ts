@@ -11,6 +11,81 @@ export interface UserProfile {
   updated_at: string;
 }
 
+// Helper function to call edge functions
+async function callUserManagementFunction(action: string, data?: any) {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error('Usuario no autenticado');
+  }
+
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/${action}`, {
+    method: data ? 'POST' : 'GET',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: data ? JSON.stringify(data) : undefined,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Error en la operación');
+  }
+
+  return await response.json();
+}
+
+// Helper function for PUT requests
+async function callUserManagementFunctionPut(action: string, data: any) {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error('Usuario no autenticado');
+  }
+
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/${action}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Error en la operación');
+  }
+
+  return await response.json();
+}
+
+// Helper function for DELETE requests
+async function callUserManagementFunctionDelete(action: string, data: any) {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) {
+    throw new Error('Usuario no autenticado');
+  }
+
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/${action}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Error en la operación');
+  }
+
+  return await response.json();
+}
+
 export const userService = {
   async getAll(): Promise<UserProfile[]> {
     const { data, error } = await supabase
@@ -70,27 +145,7 @@ export const userService = {
     fullName: string,
     role: 'super_admin' | 'admin' | 'employee' = 'employee'
   ): Promise<UserProfile> {
-    // Update user metadata in auth.users table to include role in JWT
-    try {
-      const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
-        userId,
-        {
-          user_metadata: {
-            full_name: fullName,
-            role: role // Ensure role is set in user_metadata for JWT claims
-          }
-        }
-      );
-
-      if (authUpdateError) {
-        console.error('Error updating auth user metadata:', authUpdateError);
-        // Continue with profile creation even if metadata update fails
-      }
-    } catch (metadataError) {
-      console.error('Error setting user metadata:', metadataError);
-      // Continue with profile creation
-    }
-
+    // For new user registration, create profile directly (no admin operations needed)
     const { data, error } = await supabase
       .from('user_profiles')
       .insert({
@@ -127,24 +182,8 @@ export const userService = {
         return;
       }
 
-      // Create profile with role in JWT metadata
+      // Create the profile for new users (no admin operations needed for self-registration)
       try {
-        // First ensure the user has role metadata
-        const { error: metadataError } = await supabase.auth.admin.updateUserById(
-          user.id,
-          {
-            user_metadata: {
-              full_name: user.user_metadata?.full_name || user.email.split('@')[0],
-              role: 'employee' // Default role for new users
-            }
-          }
-        );
-
-        if (metadataError) {
-          console.error('Error setting user metadata:', metadataError);
-        }
-
-        // Create the profile
         await this.createProfileForAuthUser(
           user.id,
           user.email,
@@ -170,134 +209,26 @@ export const userService = {
     role: 'super_admin' | 'admin' | 'employee';
     status: 'active' | 'inactive';
   }): Promise<UserProfile> {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    if (!currentUser) throw new Error('Usuario no autenticado');
-
-    // Create user in auth and include role in user_metadata for JWT claims
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: userData.email,
-      password: userData.password,
-      options: {
-        emailRedirectTo: undefined,
-        data: {
-          full_name: userData.full_name,
-          role: userData.role // Ensure role is set in user_metadata on signup
-        }
-      }
-    });
-
-    if (authError) throw authError;
-    if (!authData.user) throw new Error('Error al crear el usuario');
-
-    // Create user profile
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
-      .insert({
-        id: authData.user.id,
-        email: userData.email,
-        full_name: userData.full_name,
-        role: userData.role,
-        status: userData.status,
-        created_by: currentUser.id
-      })
-      .select()
-      .single();
-
-    if (profileError) throw profileError;
-    return profile;
+    const result = await callUserManagementFunction('create-user', userData);
+    return result.data;
   },
 
   async update(id: string, updates: Partial<UserProfile>): Promise<UserProfile> {
-    // Update user profile in public.user_profiles table
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .maybeSingle();
-
-    if (error) throw error;
-    
-    if (!data) {
-      throw new Error('El perfil de usuario no fue encontrado o ya no existe.');
-    }
-
-    // If role is updated, also update user_metadata in auth.users for JWT claims
-    if (updates.role) {
-      try {
-        const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
-          id,
-          {
-            user_metadata: {
-              role: updates.role // Update role in user_metadata for JWT claims
-            }
-          }
-        );
-        
-        if (authUpdateError) {
-          console.error('Error updating auth user metadata role:', authUpdateError);
-          // Log the error but don't block the profile update
-        }
-      } catch (metadataError) {
-        console.error('Error updating user metadata:', metadataError);
-        // Continue without blocking the profile update
-      }
-    }
-    
-    return data;
+    const result = await callUserManagementFunctionPut('update-user', { userId: id, updates });
+    return result.data;
   },
 
   async updateStatus(id: string, status: 'active' | 'inactive'): Promise<UserProfile> {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .maybeSingle();
+    const result = await callUserManagementFunctionPut('update-status', { userId: id, status });
+    return result.data;
+  },
 
-    if (error) throw error;
-    
-    if (!data) {
-      throw new Error('El perfil de usuario no fue encontrado o ya no existe.');
-    }
-    
-    return data;
+  async updatePassword(id: string, password: string): Promise<void> {
+    await callUserManagementFunctionPut('update-password', { userId: id, password });
   },
 
   async delete(id: string): Promise<void> {
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    if (!currentUser) throw new Error('Usuario no autenticado');
-    if (currentUser.id === id) throw new Error('No puedes eliminarte a ti mismo');
-
-    // Verificar que el usuario a eliminar no sea super_admin
-    const { data: userToDelete } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', id)
-      .single();
-
-    if (userToDelete?.role === 'super_admin') {
-      throw new Error('No se puede eliminar un super administrador');
-    }
-
-    // Eliminar perfil de usuario
-    const { error: profileError } = await supabase
-      .from('user_profiles')
-      .delete()
-      .eq('id', id);
-
-    if (profileError) throw profileError;
-
-    // Nota: En un entorno de producción, también eliminarías el usuario de auth
-    // pero esto requiere permisos especiales del service role
+    await callUserManagementFunctionDelete('delete-user', { userId: id });
   },
 
   async checkSuperAdminExists(): Promise<boolean> {
@@ -322,33 +253,11 @@ export const userService = {
       throw new Error('Ya existe un super administrador en el sistema');
     }
 
-    // Crear usuario
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: userData.email,
-      password: userData.password,
-      options: {
-        emailRedirectTo: undefined,
-        data: {
-          full_name: userData.full_name
-        }
-      }
+    // Create initial super admin using edge function
+    await callUserManagementFunction('create-user', {
+      ...userData,
+      role: 'super_admin',
+      status: 'active'
     });
-
-    if (authError) throw authError;
-    if (!authData.user) throw new Error('Error al crear el super administrador');
-
-    // Crear perfil como super admin
-    const { error: profileError } = await supabase
-      .from('user_profiles')
-      .insert({
-        id: authData.user.id,
-        email: userData.email,
-        full_name: userData.full_name,
-        role: 'super_admin',
-        status: 'active',
-        created_by: null // Primer usuario, no tiene creador
-      });
-
-    if (profileError) throw profileError;
   }
 };
