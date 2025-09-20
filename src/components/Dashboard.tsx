@@ -60,16 +60,7 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
-        return [
-          ...baseCards,
-          {
-            title: 'Ingresos de Hoy',
-            value: `$${stats.todayRevenue.toLocaleString()}`,
-            icon: DollarSign,
-            color: 'bg-green-500',
-            textColor: 'text-green-600'
-          }
-        ];
+      setLoading(false);
     }
   };
 

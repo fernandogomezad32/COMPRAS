@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, FileText, Download, Eye, Calendar, User, CreditCard, Settings } from 'lucide-react';
 import { saleService } from '../services/saleService';
 import { invoiceService } from '../services/invoiceService';
