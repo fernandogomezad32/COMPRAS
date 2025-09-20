@@ -56,9 +56,11 @@ export function Reports() {
   const loadUserRole = async () => {
     try {
       const role = await userService.getCurrentUserRole();
+      console.log('🔍 [Reports] User role loaded:', role);
       setUserRole(role);
     } catch (error) {
       console.error('Error loading user role:', error);
+      console.log('🚨 [Reports] Defaulting to employee role due to error');
       setUserRole('employee');
     }
   };

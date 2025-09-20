@@ -34,9 +34,11 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
     const loadUserRole = async () => {
       try {
         const role = await userService.getCurrentUserRole();
+        console.log('🔍 [Layout.tsx] User role loaded:', role, 'for user:', user?.email);
         setUserRole(role);
       } catch (error) {
         console.error('Error loading user role:', error);
+        console.log('🚨 [Layout.tsx] Defaulting to employee role due to error');
         setUserRole('employee'); // Default to employee on error
       }
     };
@@ -62,6 +64,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
 
   // Filter navigation based on user role
   const getFilteredNavigation = () => {
+    console.log('🎯 [Layout.tsx] Filtering navigation for role:', userRole);
     const baseNavigation = [
       { id: 'dashboard', name: 'Dashboard', icon: Home },
       { id: 'sales', name: 'Ventas', icon: ShoppingCart },
@@ -84,11 +87,14 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
 
     switch (userRole) {
       case 'super_admin':
+        console.log('✅ [Layout.tsx] Super admin navigation - full access');
         return [...baseNavigation, ...adminNavigation, ...superAdminNavigation];
       case 'admin':
+        console.log('✅ [Layout.tsx] Admin navigation - no user management');
         return [...baseNavigation, ...adminNavigation];
       case 'employee':
       default:
+        console.log('✅ [Layout.tsx] Employee navigation - basic access only');
         return baseNavigation;
     }
   };

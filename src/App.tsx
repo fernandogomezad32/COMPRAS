@@ -26,9 +26,11 @@ function App() {
       if (user) {
         try {
           const role = await userService.getCurrentUserRole();
+          console.log('🔍 [App.tsx] User role loaded:', role, 'for user:', user.email);
           setUserRole(role);
         } catch (error) {
           console.error('Error loading user role:', error);
+          console.log('🚨 [App.tsx] Defaulting to employee role due to error');
           setUserRole('employee');
         }
       }
@@ -59,29 +61,40 @@ function App() {
   }
 
   const renderContent = () => {
+    console.log('🎯 [App.tsx] Rendering content for tab:', activeTab, 'with role:', userRole);
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard />;
       case 'products':
         return <ProductManagement />;
       case 'categories':
-        return userRole === 'admin' || userRole === 'super_admin' ? <CategoryManagement /> : <Dashboard />;
+        const canAccessCategories = userRole === 'admin' || userRole === 'super_admin';
+        console.log('🔐 [App.tsx] Categories access check:', canAccessCategories, 'for role:', userRole);
+        return canAccessCategories ? <CategoryManagement /> : <Dashboard />;
       case 'customers':
         return <CustomerManagement />;
       case 'suppliers':
-        return userRole === 'admin' || userRole === 'super_admin' ? <SupplierManagement /> : <Dashboard />;
+        const canAccessSuppliers = userRole === 'admin' || userRole === 'super_admin';
+        console.log('🔐 [App.tsx] Suppliers access check:', canAccessSuppliers, 'for role:', userRole);
+        return canAccessSuppliers ? <SupplierManagement /> : <Dashboard />;
       case 'sales':
         return <SalesManagement />;
       case 'reports':
         return <Reports />;
       case 'returns':
-        return userRole === 'admin' || userRole === 'super_admin' ? <ReturnsManagement /> : <Dashboard />;
+        const canAccessReturns = userRole === 'admin' || userRole === 'super_admin';
+        console.log('🔐 [App.tsx] Returns access check:', canAccessReturns, 'for role:', userRole);
+        return canAccessReturns ? <ReturnsManagement /> : <Dashboard />;
       case 'installments':
-        return userRole === 'admin' || userRole === 'super_admin' ? <InstallmentManagement /> : <Dashboard />;
+        const canAccessInstallments = userRole === 'admin' || userRole === 'super_admin';
+        console.log('🔐 [App.tsx] Installments access check:', canAccessInstallments, 'for role:', userRole);
+        return canAccessInstallments ? <InstallmentManagement /> : <Dashboard />;
       case 'invoices':
         return <InvoiceSearch />;
       case 'users':
-        return userRole === 'super_admin' ? <UserManagement /> : <Dashboard />;
+        const canAccessUsers = userRole === 'super_admin';
+        console.log('🔐 [App.tsx] Users access check:', canAccessUsers, 'for role:', userRole);
+        return canAccessUsers ? <UserManagement /> : <Dashboard />;
       default:
         return <Dashboard />;
     }

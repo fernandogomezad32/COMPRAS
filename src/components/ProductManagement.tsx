@@ -37,9 +37,11 @@ export function ProductManagement() {
   const loadUserRole = async () => {
     try {
       const role = await userService.getCurrentUserRole();
+      console.log('🔍 [ProductManagement] User role loaded:', role);
       setUserRole(role);
     } catch (error) {
       console.error('Error loading user role:', error);
+      console.log('🚨 [ProductManagement] Defaulting to employee role due to error');
       setUserRole('employee');
     }
   };

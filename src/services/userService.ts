@@ -113,13 +113,20 @@ export const userService = {
     
     if (!user) throw new Error('Usuario no autenticado');
 
+    console.log('🔍 [userService] Getting role for user:', user.email);
+    console.log('🔍 [userService] User metadata:', user.user_metadata);
+
     // Prioritize user metadata from JWT (faster and avoids RLS recursion)
     const metadataRole = user.user_metadata?.role;
+    console.log('🔍 [userService] Metadata role:', metadataRole);
+    
     if (metadataRole && ['super_admin', 'admin', 'employee'].includes(metadataRole)) {
+      console.log('✅ [userService] Using metadata role:', metadataRole);
       return metadataRole;
     }
 
     // Fallback to database query if role not in metadata or invalid
+    console.log('⚠️ [userService] Metadata role invalid, falling back to database query');
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -129,12 +136,16 @@ export const userService = {
 
       if (error) {
         console.error('Error fetching user role from DB:', error);
+        console.log('🚨 [userService] Database query failed, defaulting to employee');
         return 'employee'; // Default role in case of error
       }
       
+      console.log('🔍 [userService] Database role:', data?.role);
+      console.log('✅ [userService] Using database role:', data?.role || 'employee');
       return data?.role || 'employee';
     } catch (error) {
       console.error('Error in getCurrentUserRole fallback:', error);
+      console.log('🚨 [userService] Fallback failed, defaulting to employee');
       return 'employee';
     }
   },

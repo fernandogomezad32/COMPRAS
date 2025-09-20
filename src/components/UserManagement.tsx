@@ -147,6 +147,7 @@ export function UserManagement() {
 
   // Solo super admins pueden ver esta sección
   if (currentUserRole !== 'super_admin') {
+    console.log('🚫 [UserManagement] Access denied for role:', currentUserRole);
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -155,10 +156,20 @@ export function UserManagement() {
           <p className="mt-1 text-sm text-gray-500">
             Solo los super administradores pueden gestionar usuarios.
           </p>
+          <div className="mt-4 p-3 bg-red-50 rounded-lg">
+            <p className="text-xs text-red-600">
+              Tu rol actual: <strong>{currentUserRole}</strong>
+            </p>
+            <p className="text-xs text-red-600">
+              Rol requerido: <strong>super_admin</strong>
+            </p>
+          </div>
         </div>
       </div>
     );
   }
+
+  console.log('✅ [UserManagement] Access granted for super_admin role');
 
   if (loading) {
     return (
@@ -399,7 +410,7 @@ export function UserManagement() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
-                      )}
+                        {user.role !== 'super_admin' && currentUserRole === 'super_admin' && (
                     </div>
                   </td>
                 </tr>

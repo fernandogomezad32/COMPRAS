@@ -50,6 +50,8 @@ export function useAuth() {
           
           // Ensure user profile exists when user signs in
           if (session?.user && event === 'SIGNED_IN') {
+            console.log('🔍 [useAuth] User signed in:', session.user.email);
+            console.log('🔍 [useAuth] User metadata on sign in:', session.user.user_metadata);
             // Don't await this to avoid blocking the auth flow
             userService.ensureUserProfile(session.user).catch(error => {
               console.error('Error ensuring user profile:', error);
