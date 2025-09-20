@@ -183,7 +183,9 @@ export function SalesManagement() {
         await invoiceService.generateInvoice(saleWithDetails);
       }
       
-      alert('¡Venta procesada exitosamente! La factura se ha descargado automáticamente.');
+      // Mostrar mensaje de éxito más profesional
+      const successMessage = `¡Venta procesada exitosamente!\n\nFactura: ${newSale.invoice_number}\nTotal: $${newSale.total.toLocaleString()}\nCliente: ${customerInfo.name}\n\nLa factura se ha descargado automáticamente.`;
+      alert(successMessage);
     } catch (err: any) {
       setError(err.message || 'Error al procesar la venta');
     } finally {

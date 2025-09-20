@@ -66,12 +66,12 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
       { id: 'dashboard', name: 'Dashboard', icon: Home },
       { id: 'sales', name: 'Ventas', icon: ShoppingCart },
       { id: 'invoices', name: 'Facturas', icon: FileText },
+      { id: 'products', name: 'Productos', icon: Package },
+      { id: 'customers', name: 'Clientes', icon: Users },
     ];
 
     const adminNavigation = [
-      { id: 'products', name: 'Productos', icon: Package },
       { id: 'categories', name: 'Categorías', icon: Tag },
-      { id: 'customers', name: 'Clientes', icon: Users },
       { id: 'suppliers', name: 'Proveedores', icon: Building },
       { id: 'installments', name: 'Ventas por Abonos', icon: Calendar },
       { id: 'returns', name: 'Devoluciones', icon: RotateCcw },

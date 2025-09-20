@@ -29,6 +29,7 @@ import type { Sale, Product, Customer, Return, InstallmentSale, Report } from '.
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import { useAuth } from '../hooks/useAuth';
 
 export function Reports() {
   const [activeReport, setActiveReport] = useState('sales');
@@ -45,6 +46,7 @@ export function Reports() {
   const [showReportForm, setShowReportForm] = useState(false);
   const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [userRole, setUserRole] = useState<string>('employee');
+  const { user } = useAuth();
 
   useEffect(() => {
     loadData();
@@ -178,11 +180,17 @@ export function Reports() {
 
   const renderSalesReport = () => {
     const filteredSales = filterDataByDate(salesData);
-    const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
-    const totalSales = filteredSales.length;
+    
+    // Para empleados, filtrar solo sus propias ventas
+    const userFilteredSales = userRole === 'employee' 
+      ? filteredSales.filter(sale => sale.user_id === user?.id)
+      : filteredSales;
+    
+    const totalRevenue = userFilteredSales.reduce((sum, sale) => sum + sale.total, 0);
+    const totalSales = userFilteredSales.length;
     const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
 
-    const salesByPaymentMethod = filteredSales.reduce((acc, sale) => {
+    const salesByPaymentMethod = userFilteredSales.reduce((acc, sale) => {
       acc[sale.payment_method] = (acc[sale.payment_method] || 0) + sale.total;
       return acc;
     }, {} as Record<string, number>);
@@ -244,7 +252,7 @@ export function Reports() {
         {canExportData && (
           <div className="flex justify-end">
             <button
-              onClick={() => exportToExcel(filteredSales, 'reporte_ventas')}
+              onClick={() => exportToExcel(userFilteredSales, userRole === 'employee' ? 'mis_ventas' : 'reporte_ventas')}
               className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
             >
               <Download className="h-5 w-5" />
@@ -256,7 +264,9 @@ export function Reports() {
         {/* Sales Table */}
         <div className="bg-white rounded-xl shadow-md">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Ventas Detalladas</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {userRole === 'employee' ? 'Mis Ventas Detalladas' : 'Ventas Detalladas'}
+            </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -270,7 +280,7 @@ export function Reports() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredSales.map((saleItem) => (
+                {userFilteredSales.map((saleItem) => (
                   <tr key={saleItem.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
@@ -785,7 +795,9 @@ export function Reports() {
     ];
 
     if (userRole === 'employee') {
-      return baseTabs;
+      return [
+        { id: 'sales', name: 'Mis Ventas', icon: ShoppingCart }
+      ];
     }
     
     return [...baseTabs, ...adminTabs];

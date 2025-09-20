@@ -66,6 +66,14 @@ export const returnService = {
   }): Promise<Return> {
     const { data: { user } } = await supabase.auth.getUser();
     
+    if (!user) throw new Error('Usuario no autenticado');
+    
+    // Verificar permisos de usuario
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para crear devoluciones. Contacta a un administrador.');
+    }
+    
     const { data, error } = await supabase
       .from('returns')
       .insert({

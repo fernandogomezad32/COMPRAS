@@ -110,6 +110,12 @@ export const installmentService = {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) throw new Error('Usuario no autenticado');
+    
+    // Verificar permisos de usuario
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para crear ventas por abonos. Contacta a un administrador.');
+    }
 
     // Calcular totales
     const total_amount = installmentData.items.reduce(

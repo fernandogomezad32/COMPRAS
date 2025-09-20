@@ -6,14 +6,34 @@ import { InvoiceConfigForm } from './InvoiceConfigForm';
 import type { Sale } from '../types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { userService } from '../services/userService';
+import { useAuth } from '../hooks/useAuth';
 
 export function InvoiceSearch() {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'barcode' | 'invoice'>('barcode');
   const [foundSale, setFoundSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);
+  const [userRole, setUserRole] = useState<string>('employee');
+
+  useEffect(() => {
+    loadUserRole();
+  }, [user]);
+
+  const loadUserRole = async () => {
+    if (user) {
+      try {
+        const role = await userService.getCurrentUserRole();
+        setUserRole(role);
+      } catch (error) {
+        console.error('Error loading user role:', error);
+        setUserRole('employee');
+      }
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,16 +84,22 @@ export function InvoiceSearch() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Búsqueda de Facturas</h1>
-        <p className="text-gray-600 mt-1">Busca ventas por código de barras o número de factura</p>
+        <p className="text-gray-600 mt-1">Busca y descarga facturas por código de barras o número de factura</p>
       </div>
 
-        <button
-          onClick={() => setShowConfig(true)}
-          className="bg-gray-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors flex items-center space-x-2"
-        >
-          <Settings className="h-4 w-4" />
-          <span>Configurar Facturas</span>
-        </button>
+      {/* Configuración solo para admins */}
+      {(userRole === 'admin' || userRole === 'super_admin') && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowConfig(true)}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors flex items-center space-x-2"
+          >
+            <Settings className="h-4 w-4" />
+            <span>Configurar Facturas</span>
+          </button>
+        </div>
+      )}
+
       {/* Formulario de búsqueda */}
       <div className="bg-white rounded-xl shadow-md p-6">
         <form onSubmit={handleSearch} className="space-y-4">
@@ -367,7 +393,7 @@ export function InvoiceSearch() {
       )}
 
       {/* Modal de configuración */}
-      {showConfig && (
+      {showConfig && (userRole === 'admin' || userRole === 'super_admin') && (
         <InvoiceConfigForm
           onSubmit={() => setShowConfig(false)}
           onCancel={() => setShowConfig(false)}

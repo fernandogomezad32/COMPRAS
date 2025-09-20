@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Package, Users, ShoppingCart, TrendingUp, AlertTriangle } from 'lucide-react';
+import { BarChart3, Package, Users, ShoppingCart, TrendingUp, AlertTriangle, DollarSign, FileText } from 'lucide-react';
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
 import { saleService } from '../services/saleService';
@@ -60,7 +60,16 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
-      setLoading(false);
+        return [
+          ...baseCards,
+          {
+            title: 'Ingresos de Hoy',
+            value: `$${stats.todayRevenue.toLocaleString()}`,
+            icon: DollarSign,
+            color: 'bg-green-500',
+            textColor: 'text-green-600'
+          }
+        ];
     }
   };
 
@@ -195,14 +204,18 @@ export default function Dashboard() {
       {userRole === 'employee' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button className="flex items-center justify-center space-x-2 bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-3 rounded-lg transition-colors">
               <ShoppingCart className="w-5 h-5" />
               <span>Nueva Venta</span>
             </button>
+            <button className="flex items-center justify-center space-x-2 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-3 rounded-lg transition-colors">
+              <FileText className="w-5 h-5" />
+              <span>Buscar Facturas</span>
+            </button>
             <button className="flex items-center justify-center space-x-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-3 rounded-lg transition-colors">
-              <BarChart3 className="w-5 h-5" />
-              <span>Ver Reportes</span>
+              <Package className="w-5 h-5" />
+              <span>Ver Productos</span>
             </button>
           </div>
         </div>

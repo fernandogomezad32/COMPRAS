@@ -24,6 +24,16 @@ export const customerService = {
   },
 
   async create(customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>): Promise<Customer> {
+    // Verificar permisos de usuario
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+    
+    // Obtener rol del usuario desde metadata
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para crear clientes. Contacta a un administrador.');
+    }
+
     const { data, error } = await supabase
       .from('customers')
       .insert(customer)
@@ -35,6 +45,16 @@ export const customerService = {
   },
 
   async update(id: string, updates: Partial<Customer>): Promise<Customer> {
+    // Verificar permisos de usuario
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+    
+    // Obtener rol del usuario desde metadata
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para editar clientes. Contacta a un administrador.');
+    }
+
     const { data, error } = await supabase
       .from('customers')
       .update({ ...updates, updated_at: new Date().toISOString() })
@@ -47,6 +67,16 @@ export const customerService = {
   },
 
   async delete(id: string): Promise<void> {
+    // Verificar permisos de usuario
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+    
+    // Obtener rol del usuario desde metadata
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para eliminar clientes. Contacta a un administrador.');
+    }
+
     const { error } = await supabase
       .from('customers')
       .delete()

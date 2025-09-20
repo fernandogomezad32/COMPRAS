@@ -27,6 +27,12 @@ export const reportService = {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) throw new Error('Usuario no autenticado');
+    
+    // Verificar permisos de usuario
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para crear reportes. Contacta a un administrador.');
+    }
 
     const { data, error } = await supabase
       .from('reports')
@@ -42,6 +48,15 @@ export const reportService = {
   },
 
   async update(id: string, updates: Partial<Report>): Promise<Report> {
+    // Verificar permisos de usuario
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+    
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para editar reportes. Contacta a un administrador.');
+    }
+
     const { data, error } = await supabase
       .from('reports')
       .update(updates)
@@ -54,6 +69,15 @@ export const reportService = {
   },
 
   async delete(id: string): Promise<void> {
+    // Verificar permisos de usuario
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+    
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para eliminar reportes. Contacta a un administrador.');
+    }
+
     const { error } = await supabase
       .from('reports')
       .delete()

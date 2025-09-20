@@ -52,6 +52,16 @@ export const productService = {
   },
 
   async create(product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'category'>): Promise<Product> {
+    // Verificar permisos de usuario
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+    
+    // Obtener rol del usuario desde metadata
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para crear productos. Contacta a un administrador.');
+    }
+
     const { data, error } = await supabase
       .from('products')
       .insert(product)
@@ -67,6 +77,16 @@ export const productService = {
   },
 
   async update(id: string, updates: Partial<Product>): Promise<Product> {
+    // Verificar permisos de usuario
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+    
+    // Obtener rol del usuario desde metadata
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para editar productos. Contacta a un administrador.');
+    }
+
     const { data, error } = await supabase
       .from('products')
       .update(updates)
@@ -83,6 +103,16 @@ export const productService = {
   },
 
   async delete(id: string): Promise<void> {
+    // Verificar permisos de usuario
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
+    
+    // Obtener rol del usuario desde metadata
+    const userRole = user.user_metadata?.role || 'employee';
+    if (userRole === 'employee') {
+      throw new Error('No tienes permisos para eliminar productos. Contacta a un administrador.');
+    }
+
     const { error } = await supabase
       .from('products')
       .delete()

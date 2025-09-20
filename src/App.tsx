@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
+import { userService } from './services/userService';
 import { Layout } from './components/Layout';
 import { AuthForm } from './components/AuthForm';
 import Dashboard from './components/Dashboard';
@@ -13,10 +14,29 @@ import { ReturnsManagement } from './components/ReturnsManagement';
 import { InvoiceSearch } from './components/InvoiceSearch';
 import { InstallmentManagement } from './components/InstallmentManagement';
 import { UserManagement } from './components/UserManagement';
+import { userService } from './services/userService';
 
 function App() {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [userRole, setUserRole] = useState<string>('employee');
+
+  // Load user role
+  useEffect(() => {
+    const loadUserRole = async () => {
+      if (user) {
+        try {
+          const role = await userService.getCurrentUserRole();
+          setUserRole(role);
+        } catch (error) {
+          console.error('Error loading user role:', error);
+          setUserRole('employee');
+        }
+      }
+    };
+
+    loadUserRole();
+  }, [user]);
 
   if (loading) {
     return (
@@ -46,23 +66,23 @@ function App() {
       case 'products':
         return <ProductManagement />;
       case 'categories':
-        return <CategoryManagement />;
+        return userRole === 'admin' || userRole === 'super_admin' ? <CategoryManagement /> : <Dashboard />;
       case 'customers':
         return <CustomerManagement />;
       case 'suppliers':
-        return <SupplierManagement />;
+        return userRole === 'admin' || userRole === 'super_admin' ? <SupplierManagement /> : <Dashboard />;
       case 'sales':
         return <SalesManagement />;
       case 'reports':
         return <Reports />;
       case 'returns':
-        return <ReturnsManagement />;
+        return userRole === 'admin' || userRole === 'super_admin' ? <ReturnsManagement /> : <Dashboard />;
       case 'installments':
-        return <InstallmentManagement />;
+        return userRole === 'admin' || userRole === 'super_admin' ? <InstallmentManagement /> : <Dashboard />;
       case 'invoices':
         return <InvoiceSearch />;
       case 'users':
-        return <UserManagement />;
+        return userRole === 'super_admin' ? <UserManagement /> : <Dashboard />;
       default:
         return <Dashboard />;
     }
