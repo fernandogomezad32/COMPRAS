@@ -14,7 +14,6 @@ import { ReturnsManagement } from './components/ReturnsManagement';
 import { InvoiceSearch } from './components/InvoiceSearch';
 import { InstallmentManagement } from './components/InstallmentManagement';
 import { UserManagement } from './components/UserManagement';
-import { userService } from './services/userService';
 
 function App() {
   const { user, loading } = useAuth();
