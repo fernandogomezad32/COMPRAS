@@ -116,17 +116,8 @@ export const userService = {
     console.log('🔍 [userService] Getting role for user:', user.email);
     console.log('🔍 [userService] User metadata:', user.user_metadata);
 
-    // Prioritize user metadata from JWT (faster and avoids RLS recursion)
-    const metadataRole = user.user_metadata?.role;
-    console.log('🔍 [userService] Metadata role:', metadataRole);
-    
-    if (metadataRole && ['super_admin', 'admin', 'employee'].includes(metadataRole)) {
-      console.log('✅ [userService] Using metadata role:', metadataRole);
-      return metadataRole;
-    }
-
-    // Fallback to database query if role not in metadata or invalid
-    console.log('⚠️ [userService] Metadata role invalid, falling back to database query');
+    // Always use database as source of truth for roles
+    console.log('🔍 [userService] Fetching role from database (source of truth)');
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -141,8 +132,25 @@ export const userService = {
       }
       
       console.log('🔍 [userService] Database role:', data?.role);
-      console.log('✅ [userService] Using database role:', data?.role || 'employee');
-      return data?.role || 'employee';
+      
+      const dbRole = data?.role || 'employee';
+      
+      // Check if metadata role is different from database role
+      const metadataRole = user.user_metadata?.role;
+      if (metadataRole !== dbRole) {
+        console.log('⚠️ [userService] Role mismatch detected!');
+        console.log('📊 [userService] Database role:', dbRole);
+        console.log('🏷️ [userService] Metadata role:', metadataRole);
+        console.log('🔄 [userService] Will sync metadata with database role');
+        
+        // Trigger metadata sync (don't await to avoid blocking)
+        this.syncUserMetadata(user.id, dbRole).catch(error => {
+          console.error('Error syncing user metadata:', error);
+        });
+      }
+      
+      console.log('✅ [userService] Using database role as source of truth:', dbRole);
+      return dbRole;
     } catch (error) {
       console.error('Error in getCurrentUserRole fallback:', error);
       console.log('🚨 [userService] Fallback failed, defaulting to employee');
@@ -270,5 +278,52 @@ export const userService = {
       role: 'super_admin',
       status: 'active'
     });
+  },
+
+  async syncUserMetadata(userId: string, correctRole: string): Promise<void> {
+    try {
+      console.log('🔄 [userService] Syncing metadata for user:', userId, 'with role:', correctRole);
+      
+      // Call edge function to sync metadata
+      await callUserManagementFunctionPut('sync-metadata', { 
+        userId, 
+        role: correctRole 
+      });
+      
+      console.log('✅ [userService] Metadata sync completed');
+    } catch (error) {
+      console.error('❌ [userService] Error syncing metadata:', error);
+      throw error;
+    }
+  },
+
+  async fixAllUserRoles(): Promise<void> {
+    try {
+      console.log('🔧 [userService] Starting bulk role synchronization');
+      
+      // Get all users from database
+      const { data: users, error } = await supabase
+        .from('user_profiles')
+        .select('id, email, role');
+
+      if (error) throw error;
+
+      console.log(`🔍 [userService] Found ${users?.length || 0} users to sync`);
+
+      // Sync each user's metadata
+      for (const user of users || []) {
+        try {
+          await this.syncUserMetadata(user.id, user.role);
+          console.log(`✅ [userService] Synced user: ${user.email} with role: ${user.role}`);
+        } catch (error) {
+          console.error(`❌ [userService] Failed to sync user ${user.email}:`, error);
+        }
+      }
+      
+      console.log('🎉 [userService] Bulk role synchronization completed');
+    } catch (error) {
+      console.error('❌ [userService] Error in bulk role sync:', error);
+      throw error;
+    }
   }
 };

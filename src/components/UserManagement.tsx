@@ -9,7 +9,9 @@ import {
   Shield,
   CheckCircle,
   XCircle,
-  Crown
+  Crown,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { userService } from '../services/userService';
 import type { UserProfile } from '../types';
@@ -29,6 +31,7 @@ export function UserManagement() {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string>('employee');
   const { user: authUser } = useAuth();
+  const [syncingRoles, setSyncingRoles] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -97,6 +100,22 @@ export function UserManagement() {
     await loadData();
   };
 
+  const handleSyncAllRoles = async () => {
+    if (!confirm('¿Estás seguro de que quieres sincronizar los roles de todos los usuarios? Esto puede tomar unos momentos.')) return;
+
+    setSyncingRoles(true);
+    try {
+      await userService.fixAllUserRoles();
+      alert('✅ Sincronización de roles completada. Los usuarios afectados deberán cerrar sesión y volver a iniciarla para ver los cambios.');
+      await loadData();
+    } catch (error: any) {
+      console.error('Error syncing roles:', error);
+      alert('❌ Error al sincronizar roles: ' + (error.message || 'Error desconocido'));
+    } finally {
+      setSyncingRoles(false);
+    }
+  };
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'super_admin': return <Crown className="h-4 w-4 text-purple-600" />;
@@ -130,13 +149,37 @@ export function UserManagement() {
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
           <p className="text-gray-600 mt-1">Administra los usuarios que acceden al sistema</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center space-x-2"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Nuevo Usuario</span>
-        </button>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleSyncAllRoles}
+            disabled={syncingRoles}
+            className="bg-orange-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center space-x-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${syncingRoles ? 'animate-spin' : ''}`} />
+            <span>{syncingRoles ? 'Sincronizando...' : 'Sincronizar Roles'}</span>
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 flex items-center space-x-2"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Nuevo Usuario</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Alerta de sincronización */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div className="flex items-start space-x-3">
+          <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-medium text-yellow-800">Problema de Roles Detectado</h3>
+            <div className="mt-2 text-sm text-yellow-700">
+              <p>Si algunos usuarios aparecen con roles incorrectos (ej: empleados que actúan como super admin), usa el botón "Sincronizar Roles" para corregir las inconsistencias.</p>
+              <p className="mt-1"><strong>Importante:</strong> Los usuarios afectados deberán cerrar sesión y volver a iniciarla después de la sincronización.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}

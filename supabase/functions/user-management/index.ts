@@ -102,6 +102,9 @@ Deno.serve(async (req) => {
         if (action === 'update-password') {
           return await updateUserPassword(req, supabaseAdmin, user.id, userProfile.role);
         }
+        if (action === 'sync-metadata') {
+          return await syncUserMetadata(req, supabaseAdmin, user.id, userProfile.role);
+        }
         break;
 
       case 'DELETE':
@@ -495,6 +498,71 @@ async function deleteUser(req: Request, supabaseAdmin: any, currentUserId: strin
     console.error('Delete user error:', error);
     return new Response(
       JSON.stringify({ error: 'Failed to delete user' }),
+      { status: 500, headers: corsHeaders }
+    );
+  }
+}
+
+async function syncUserMetadata(req: Request, supabaseAdmin: any, currentUserId: string, currentUserRole: string) {
+  try {
+    const { userId, role } = await req.json();
+
+    if (!userId || !role) {
+      return new Response(
+        JSON.stringify({ error: 'Missing userId or role' }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Verify the role exists in the database
+    const { data: userProfile, error: fetchError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('role, full_name')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError) {
+      return new Response(
+        JSON.stringify({ error: 'User profile not found' }),
+        { status: 404, headers: corsHeaders }
+      );
+    }
+
+    // Only super_admin can sync super_admin roles
+    if ((userProfile.role === 'super_admin' || role === 'super_admin') && currentUserRole !== 'super_admin') {
+      return new Response(
+        JSON.stringify({ error: 'Only super admins can manage super admin metadata' }),
+        { status: 403, headers: corsHeaders }
+      );
+    }
+
+    // Update user metadata in auth to match database role
+    const { error: metadataError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        role: userProfile.role, // Use the role from database as source of truth
+        full_name: userProfile.full_name
+      }
+    });
+
+    if (metadataError) {
+      return new Response(
+        JSON.stringify({ error: metadataError.message }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        message: 'User metadata synchronized successfully',
+        syncedRole: userProfile.role 
+      }),
+      { status: 200, headers: corsHeaders }
+    );
+
+  } catch (error) {
+    console.error('Sync metadata error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to sync user metadata' }),
       { status: 500, headers: corsHeaders }
     );
   }
