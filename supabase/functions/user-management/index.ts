@@ -105,6 +105,9 @@ Deno.serve(async (req) => {
         if (action === 'sync-metadata') {
           return await syncUserMetadata(req, supabaseAdmin, user.id, userProfile.role);
         }
+        if (action === 'fix-missing-profiles') {
+          return await fixMissingProfiles(req, supabaseAdmin, user.id, userProfile.role);
+        }
         break;
 
       case 'DELETE':
@@ -576,6 +579,143 @@ async function syncUserMetadata(req: Request, supabaseAdmin: any, currentUserId:
     console.error('Sync metadata error:', error);
     return new Response(
       JSON.stringify({ error: 'Failed to sync user metadata' }),
+      { status: 500, headers: corsHeaders }
+    );
+  }
+}
+
+async function fixMissingProfiles(req: Request, supabaseAdmin: any, currentUserId: string, currentUserRole: string) {
+  try {
+    // Only super_admin can fix missing profiles
+    if (currentUserRole !== 'super_admin') {
+      return new Response(
+        JSON.stringify({ error: 'Only super admins can fix missing profiles' }),
+        { status: 403, headers: corsHeaders }
+      );
+    }
+
+    console.log('🔧 Starting missing profiles fix...');
+
+    // Get all users from auth.users
+    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (authError) {
+      return new Response(
+        JSON.stringify({ error: `Failed to fetch auth users: ${authError.message}` }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // Get all existing profiles
+    const { data: existingProfiles, error: profilesError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('id, email');
+
+    if (profilesError) {
+      return new Response(
+        JSON.stringify({ error: `Failed to fetch user profiles: ${profilesError.message}` }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const existingProfileIds = new Set(existingProfiles?.map(p => p.id) || []);
+    const missingProfiles = [];
+    const syncedUsers = [];
+    const errors = [];
+
+    console.log(`🔍 Found ${authUsers.users?.length || 0} auth users and ${existingProfiles?.length || 0} existing profiles`);
+
+    // Find users without profiles and create them
+    for (const authUser of authUsers.users || []) {
+      try {
+        if (!existingProfileIds.has(authUser.id)) {
+          console.log(`📝 Creating missing profile for user: ${authUser.email}`);
+          
+          // Extract data from user metadata or use defaults
+          const fullName = authUser.user_metadata?.full_name || 
+                          authUser.email?.split('@')[0] || 
+                          'Usuario';
+          const role = authUser.user_metadata?.role || 'employee';
+
+          // Create the missing profile
+          const { data: newProfile, error: createError } = await supabaseAdmin
+            .from('user_profiles')
+            .insert({
+              id: authUser.id,
+              email: authUser.email,
+              full_name: fullName,
+              role: role,
+              status: 'active',
+              created_by: currentUserId
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error(`❌ Failed to create profile for ${authUser.email}:`, createError);
+            errors.push(`${authUser.email}: ${createError.message}`);
+          } else {
+            console.log(`✅ Created profile for ${authUser.email} with role ${role}`);
+            missingProfiles.push(newProfile);
+          }
+        }
+
+        // Sync metadata for all users (existing logic)
+        const { data: userProfile } = await supabaseAdmin
+          .from('user_profiles')
+          .select('role, full_name')
+          .eq('id', authUser.id)
+          .maybeSingle();
+
+        if (userProfile) {
+          // Update user metadata to match database role
+          const { error: metadataError } = await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+            user_metadata: {
+              role: userProfile.role,
+              full_name: userProfile.full_name
+            }
+          });
+
+          if (metadataError) {
+            console.error(`❌ Failed to sync metadata for ${authUser.email}:`, metadataError);
+            errors.push(`Metadata sync for ${authUser.email}: ${metadataError.message}`);
+          } else {
+            console.log(`✅ Synced metadata for ${authUser.email} with role ${userProfile.role}`);
+            syncedUsers.push({
+              email: authUser.email,
+              role: userProfile.role
+            });
+          }
+        }
+      } catch (userError) {
+        console.error(`❌ Error processing user ${authUser.email}:`, userError);
+        errors.push(`${authUser.email}: ${userError.message}`);
+      }
+    }
+
+    console.log('🎉 Missing profiles fix completed');
+    console.log(`📊 Created ${missingProfiles.length} missing profiles`);
+    console.log(`🔄 Synced ${syncedUsers.length} user metadata`);
+    console.log(`❌ Errors: ${errors.length}`);
+
+    return new Response(
+      JSON.stringify({ 
+        message: 'Missing profiles fix completed successfully',
+        createdProfiles: missingProfiles.length,
+        syncedUsers: syncedUsers.length,
+        errors: errors.length > 0 ? errors : undefined,
+        details: {
+          missingProfiles: missingProfiles.map(p => ({ email: p.email, role: p.role })),
+          syncedUsers
+        }
+      }),
+      { status: 200, headers: corsHeaders }
+    );
+
+  } catch (error) {
+    console.error('Fix missing profiles error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to fix missing profiles' }),
       { status: 500, headers: corsHeaders }
     );
   }

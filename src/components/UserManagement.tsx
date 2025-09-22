@@ -101,16 +101,16 @@ export function UserManagement() {
   };
 
   const handleSyncAllRoles = async () => {
-    if (!confirm('¿Estás seguro de que quieres sincronizar los roles de todos los usuarios? Esto puede tomar unos momentos.')) return;
+    if (!confirm('¿Estás seguro de que quieres reparar los perfiles y roles de todos los usuarios? Esto creará perfiles faltantes y sincronizará roles. Puede tomar unos momentos.')) return;
 
     setSyncingRoles(true);
     try {
       await userService.fixAllUserRoles();
-      alert('✅ Sincronización de roles completada. Los usuarios afectados deberán cerrar sesión y volver a iniciarla para ver los cambios.');
+      alert('✅ Reparación de usuarios completada. Se han creado perfiles faltantes y sincronizado roles. Los usuarios afectados deberán cerrar sesión y volver a iniciarla para ver los cambios.');
       await loadData();
     } catch (error: any) {
       console.error('Error syncing roles:', error);
-      alert('❌ Error al sincronizar roles: ' + (error.message || 'Error desconocido'));
+      alert('❌ Error al reparar usuarios: ' + (error.message || 'Error desconocido'));
     } finally {
       setSyncingRoles(false);
     }
@@ -156,7 +156,7 @@ export function UserManagement() {
             className="bg-orange-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center space-x-2"
           >
             <RefreshCw className={`h-4 w-4 ${syncingRoles ? 'animate-spin' : ''}`} />
-            <span>{syncingRoles ? 'Sincronizando...' : 'Sincronizar Roles'}</span>
+            <span>{syncingRoles ? 'Reparando...' : 'Reparar Usuarios'}</span>
           </button>
           <button
             onClick={() => setShowForm(true)}
@@ -173,10 +173,15 @@ export function UserManagement() {
         <div className="flex items-start space-x-3">
           <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
           <div>
-            <h3 className="text-sm font-medium text-yellow-800">Problema de Roles Detectado</h3>
+            <h3 className="text-sm font-medium text-yellow-800">Problemas de Usuarios Detectados</h3>
             <div className="mt-2 text-sm text-yellow-700">
-              <p>Si algunos usuarios aparecen con roles incorrectos (ej: empleados que actúan como super admin), usa el botón "Sincronizar Roles" para corregir las inconsistencias.</p>
-              <p className="mt-1"><strong>Importante:</strong> Los usuarios afectados deberán cerrar sesión y volver a iniciarla después de la sincronización.</p>
+              <p>Si experimentas errores como "user profile not found" o usuarios con roles incorrectos, usa el botón "Sincronizar Roles" para:</p>
+              <ul className="mt-1 ml-4 list-disc space-y-1">
+                <li>Crear perfiles faltantes para usuarios que solo existen en autenticación</li>
+                <li>Corregir inconsistencias de roles entre la base de datos y metadatos</li>
+                <li>Sincronizar todos los datos de usuario</li>
+              </ul>
+              <p className="mt-2"><strong>Importante:</strong> Los usuarios afectados deberán cerrar sesión y volver a iniciarla después de la sincronización.</p>
             </div>
           </div>
         </div>

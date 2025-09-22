@@ -301,28 +301,14 @@ export const userService = {
     try {
       console.log('🔧 [userService] Starting bulk role synchronization');
       
-      // Get all users from database
-      const { data: users, error } = await supabase
-        .from('user_profiles')
-        .select('id, email, role');
-
-      if (error) throw error;
-
-      console.log(`🔍 [userService] Found ${users?.length || 0} users to sync`);
-
-      // Sync each user's metadata
-      for (const user of users || []) {
-        try {
-          await this.syncUserMetadata(user.id, user.role);
-          console.log(`✅ [userService] Synced user: ${user.email} with role: ${user.role}`);
-        } catch (error) {
-          console.error(`❌ [userService] Failed to sync user ${user.email}:`, error);
-        }
-      }
+      // Call edge function to fix missing profiles and sync roles
+      const result = await callUserManagementFunctionPut('fix-missing-profiles', {});
       
-      console.log('🎉 [userService] Bulk role synchronization completed');
+      console.log('✅ [userService] Fix missing profiles result:', result);
+      
+      console.log('🎉 [userService] Bulk profile fix and role synchronization completed');
     } catch (error) {
-      console.error('❌ [userService] Error in bulk role sync:', error);
+      console.error('❌ [userService] Error in bulk profile fix and role sync:', error);
       throw error;
     }
   }
