@@ -519,12 +519,25 @@ async function syncUserMetadata(req: Request, supabaseAdmin: any, currentUserId:
       .from('user_profiles')
       .select('role, full_name')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (fetchError) {
       return new Response(
         JSON.stringify({ error: 'User profile not found' }),
         { status: 404, headers: corsHeaders }
+      );
+    }
+
+    // Check if user profile exists
+    if (!userProfile) {
+      console.log(`⚠️ User profile not found for userId: ${userId}, skipping sync`);
+      return new Response(
+        JSON.stringify({ 
+          message: 'User profile not found, skipping sync',
+          skipped: true,
+          userId: userId
+        }),
+        { status: 200, headers: corsHeaders }
       );
     }
 
