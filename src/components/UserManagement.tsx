@@ -1,18 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Edit2, 
-  Trash2, 
-  User,
-  Mail,
-  Shield,
-  CheckCircle,
-  XCircle,
-  Crown,
-  RefreshCw,
-  AlertTriangle
-} from 'lucide-react';
+import { Plus, Search, CreditCard as Edit2, Trash2, User, Mail, Shield, CheckCircle, XCircle, Crown, RefreshCw, AlertTriangle } from 'lucide-react';
 import { userService } from '../services/userService';
 import type { UserProfile } from '../types';
 import { UserForm } from './UserForm';
