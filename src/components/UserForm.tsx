@@ -38,6 +38,13 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Debug: Log user data being edited
+    console.log('🔍 [UserForm] Starting user update process');
+    console.log('🔍 [UserForm] User being edited:', user);
+    console.log('🔍 [UserForm] User ID:', user?.id);
+    console.log('🔍 [UserForm] Form data:', formData);
+    
     setLoading(true);
     setError(null);
 
@@ -57,16 +64,21 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
         role: formData.role,
         status: formData.status
       };
+      
+      console.log('🔍 [UserForm] Prepared user data for update:', userData);
 
       if (user) {
+        console.log('🔍 [UserForm] Calling userService.update with ID:', user.id);
         // Actualizar usuario existente
         await userService.update(user.id, userData);
         
         // Si se proporcionó nueva contraseña, actualizarla
         if (formData.password) {
+          console.log('🔍 [UserForm] Updating password for user:', user.id);
           await userService.updatePassword(user.id, formData.password);
         }
       } else {
+        console.log('🔍 [UserForm] Creating new user');
         // Crear nuevo usuario
         await userService.create({
           ...userData,
@@ -74,8 +86,12 @@ export function UserForm({ user, onSubmit, onCancel }: UserFormProps) {
         });
       }
 
+      console.log('✅ [UserForm] User operation completed successfully');
       onSubmit();
     } catch (err: any) {
+      console.error('❌ [UserForm] Error in user operation:', err);
+      console.error('❌ [UserForm] Error message:', err.message);
+      console.error('❌ [UserForm] Full error object:', err);
       setError(err.message || 'Error al guardar el usuario');
     } finally {
       setLoading(false);

@@ -78,6 +78,8 @@ export function UserManagement() {
   };
 
   const handleEdit = (user: UserProfile) => {
+    console.log('🔍 [UserManagement] Editing user:', user);
+    console.log('🔍 [UserManagement] User ID being passed to form:', user.id);
     setEditingUser(user);
     setShowForm(true);
   };

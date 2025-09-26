@@ -38,12 +38,21 @@ async function callUserManagementFunction(action: string, data?: any) {
 
 // Helper function for PUT requests
 async function callUserManagementFunctionPut(action: string, data: any) {
+  console.log('🔍 [callUserManagementFunctionPut] Action:', action);
+  console.log('🔍 [callUserManagementFunctionPut] Data being sent:', data);
+  
   const { data: { session } } = await supabase.auth.getSession();
   
   if (!session) {
+    console.error('❌ [callUserManagementFunctionPut] No session found');
     throw new Error('Usuario no autenticado');
   }
 
+  console.log('🔍 [callUserManagementFunctionPut] Session user:', session.user?.email);
+  
+  const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/${action}`;
+  console.log('🔍 [callUserManagementFunctionPut] Calling URL:', functionUrl);
+  
   const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/user-management/${action}`, {
     method: 'PUT',
     headers: {
@@ -53,12 +62,18 @@ async function callUserManagementFunctionPut(action: string, data: any) {
     body: JSON.stringify(data),
   });
 
+  console.log('🔍 [callUserManagementFunctionPut] Response status:', response.status);
+  console.log('🔍 [callUserManagementFunctionPut] Response ok:', response.ok);
+  
   if (!response.ok) {
     const errorData = await response.json();
+    console.error('❌ [callUserManagementFunctionPut] Error response:', errorData);
     throw new Error(errorData.error || 'Error en la operación');
   }
 
-  return await response.json();
+  const result = await response.json();
+  console.log('✅ [callUserManagementFunctionPut] Success response:', result);
+  return result;
 }
 
 // Helper function for DELETE requests
@@ -233,7 +248,18 @@ export const userService = {
   },
 
   async update(id: string, updates: Partial<UserProfile>): Promise<UserProfile> {
+    console.log('🔍 [userService.update] Starting update process');
+    console.log('🔍 [userService.update] User ID received:', id);
+    console.log('🔍 [userService.update] Updates to apply:', updates);
+    
+    if (!id) {
+      console.error('❌ [userService.update] User ID is null or undefined!');
+      throw new Error('User ID is required for update operation');
+    }
+    
+    console.log('🔍 [userService.update] Calling edge function with userId:', id);
     const result = await callUserManagementFunctionPut('update-user', { userId: id, updates });
+    console.log('✅ [userService.update] Edge function response:', result);
     return result.data;
   },
 
