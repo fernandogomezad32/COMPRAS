@@ -130,6 +130,82 @@ export function UserManagement() {
     );
   }
 
+  // If user is admin but not super_admin, show limited repair interface
+  if (currentUserRole === 'admin') {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Reparación de Usuarios</h1>
+            <p className="text-gray-600 mt-1">Herramientas para solucionar problemas de usuarios</p>
+          </div>
+        </div>
+
+        {/* Repair Tool */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-start space-x-4">
+            <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
+              <RefreshCw className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Reparar Perfiles de Usuario</h3>
+              <p className="text-gray-600 mb-4">
+                Si experimentas errores como "User profile not found", esta herramienta puede ayudar a:
+              </p>
+              <ul className="text-sm text-gray-600 space-y-1 mb-6">
+                <li>• Crear perfiles faltantes para usuarios existentes</li>
+                <li>• Sincronizar roles entre la base de datos y metadatos</li>
+                <li>• Corregir inconsistencias de datos de usuario</li>
+              </ul>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-yellow-800">Importante</h4>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Los usuarios afectados deberán cerrar sesión y volver a iniciarla después de la reparación.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleSyncAllRoles}
+                disabled={syncingRoles}
+                className="bg-orange-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center space-x-2"
+              >
+                <RefreshCw className={`h-5 w-5 ${syncingRoles ? 'animate-spin' : ''}`} />
+                <span>{syncingRoles ? 'Reparando usuarios...' : 'Iniciar Reparación'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <div className="bg-blue-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-blue-900 mb-3">¿Cómo usar esta herramienta?</h3>
+          <div className="space-y-3 text-sm text-blue-800">
+            <div className="flex items-start space-x-3">
+              <span className="bg-blue-200 text-blue-900 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span>
+              <p>Haz clic en "Iniciar Reparación" para comenzar el proceso automático</p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <span className="bg-blue-200 text-blue-900 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">2</span>
+              <p>El sistema creará perfiles faltantes y sincronizará roles automáticamente</p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <span className="bg-blue-200 text-blue-900 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">3</span>
+              <p>Los usuarios afectados deberán cerrar sesión y volver a iniciarla</p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <span className="bg-blue-200 text-blue-900 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">4</span>
+              <p>Verifica que los errores se hayan resuelto probando las funciones afectadas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       {/* Header */}

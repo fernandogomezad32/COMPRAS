@@ -94,7 +94,8 @@ function App() {
       case 'users':
         const canAccessUsers = userRole === 'super_admin';
         console.log('🔐 [App.tsx] Users access check:', canAccessUsers, 'for role:', userRole);
-        return canAccessUsers ? <UserManagement /> : <Dashboard />;
+        // Allow admin users to access user repair functionality
+        return (canAccessUsers || userRole === 'admin') ? <UserManagement /> : <Dashboard />;
       default:
         return <Dashboard />;
     }

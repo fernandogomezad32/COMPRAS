@@ -85,13 +85,17 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
       { id: 'users', name: 'Usuarios', icon: Users },
     ];
 
+    // Add user management for admins too (with limited permissions)
+    const adminUserNavigation = [
+      { id: 'users', name: 'Reparar Usuarios', icon: Users },
+    ];
     switch (userRole) {
       case 'super_admin':
         console.log('✅ [Layout.tsx] Super admin navigation - full access');
         return [...baseNavigation, ...adminNavigation, ...superAdminNavigation];
       case 'admin':
         console.log('✅ [Layout.tsx] Admin navigation - no user management');
-        return [...baseNavigation, ...adminNavigation];
+        return [...baseNavigation, ...adminNavigation, ...adminUserNavigation];
       case 'employee':
       default:
         console.log('✅ [Layout.tsx] Employee navigation - basic access only');
