@@ -15,13 +15,11 @@ interface UserData {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Initialize Supabase client with service role
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -33,13 +31,11 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Initialize regular client for auth verification
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Get authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -48,7 +44,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify user authentication and get user info
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
@@ -60,21 +55,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get user profile to check permissions
-    const { data: userProfile, error: profileError } = await supabase
+    const { data: userProfile, error: profileError } = await supabaseAdmin
       .from('user_profiles')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (profileError || !userProfile) {
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
+      return new Response(
+        JSON.stringify({ error: 'Database error while fetching user profile' }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    if (!userProfile) {
       return new Response(
         JSON.stringify({ error: 'User profile not found' }),
         { status: 403, headers: corsHeaders }
       );
     }
 
-    // Check if user has admin permissions
     if (userProfile.role !== 'super_admin' && userProfile.role !== 'admin') {
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions' }),
@@ -141,7 +142,6 @@ async function createUser(req: Request, supabaseAdmin: any, currentUserId: strin
   try {
     const userData: UserData = await req.json();
 
-    // Only super_admin can create other super_admins
     if (userData.role === 'super_admin' && currentUserRole !== 'super_admin') {
       return new Response(
         JSON.stringify({ error: 'Only super admins can create super admin users' }),
@@ -149,7 +149,6 @@ async function createUser(req: Request, supabaseAdmin: any, currentUserId: strin
       );
     }
 
-    // Create user in auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: userData.email,
       password: userData.password,
@@ -174,7 +173,6 @@ async function createUser(req: Request, supabaseAdmin: any, currentUserId: strin
       );
     }
 
-    // Create user profile
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('user_profiles')
       .insert({
@@ -189,7 +187,6 @@ async function createUser(req: Request, supabaseAdmin: any, currentUserId: strin
       .single();
 
     if (profileError) {
-      // If profile creation fails, clean up the auth user
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       return new Response(
         JSON.stringify({ error: profileError.message }),
@@ -215,28 +212,40 @@ async function updateUser(req: Request, supabaseAdmin: any, currentUserId: strin
   try {
     const { userId, updates } = await req.json();
 
+    console.log('🔍 [updateUser] Received request:', { userId, updates });
+
     if (!userId || !updates) {
+      console.error('❌ [updateUser] Missing userId or updates');
       return new Response(
         JSON.stringify({ error: 'Missing userId or updates' }),
         { status: 400, headers: corsHeaders }
       );
     }
 
-    // Get current user data to check permissions
     const { data: targetUser, error: fetchError } = await supabaseAdmin
       .from('user_profiles')
-      .select('role')
+      .select('role, email')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
+
+    console.log('🔍 [updateUser] Target user query result:', { targetUser, fetchError });
 
     if (fetchError) {
+      console.error('❌ [updateUser] Database error fetching user:', fetchError);
+      return new Response(
+        JSON.stringify({ error: 'Database error: ' + fetchError.message }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    if (!targetUser) {
+      console.error('❌ [updateUser] User not found in database');
       return new Response(
         JSON.stringify({ error: 'User not found' }),
         { status: 404, headers: corsHeaders }
       );
     }
 
-    // Only super_admin can update other super_admins or promote to super_admin
     if ((targetUser.role === 'super_admin' || updates.role === 'super_admin') && currentUserRole !== 'super_admin') {
       return new Response(
         JSON.stringify({ error: 'Only super admins can manage super admin users' }),
@@ -244,7 +253,7 @@ async function updateUser(req: Request, supabaseAdmin: any, currentUserId: strin
       );
     }
 
-    // Update user profile
+    console.log('🔄 [updateUser] Updating user profile...');
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('user_profiles')
       .update({
@@ -256,24 +265,27 @@ async function updateUser(req: Request, supabaseAdmin: any, currentUserId: strin
       .single();
 
     if (profileError) {
+      console.error('❌ [updateUser] Error updating profile:', profileError);
       return new Response(
         JSON.stringify({ error: profileError.message }),
         { status: 400, headers: corsHeaders }
       );
     }
 
-    // Update user metadata in auth if role is being updated
-    if (updates.role) {
+    console.log('✅ [updateUser] Profile updated successfully:', profile);
+
+    if (updates.role || updates.full_name) {
       try {
+        console.log('🔄 [updateUser] Updating auth metadata...');
         await supabaseAdmin.auth.admin.updateUserById(userId, {
           user_metadata: {
-            role: updates.role,
+            role: updates.role || profile.role,
             full_name: updates.full_name || profile.full_name
           }
         });
+        console.log('✅ [updateUser] Auth metadata updated successfully');
       } catch (metadataError) {
-        console.error('Error updating user metadata:', metadataError);
-        // Don't fail the entire operation if metadata update fails
+        console.error('⚠️ [updateUser] Error updating user metadata:', metadataError);
       }
     }
 
@@ -283,9 +295,9 @@ async function updateUser(req: Request, supabaseAdmin: any, currentUserId: strin
     );
 
   } catch (error) {
-    console.error('Update user error:', error);
+    console.error('❌ [updateUser] Unexpected error:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to update user' }),
+      JSON.stringify({ error: 'Failed to update user: ' + error.message }),
       { status: 500, headers: corsHeaders }
     );
   }
@@ -302,7 +314,6 @@ async function updateUserStatus(req: Request, supabaseAdmin: any, currentUserId:
       );
     }
 
-    // Prevent users from deactivating themselves
     if (userId === currentUserId) {
       return new Response(
         JSON.stringify({ error: 'Cannot change your own status' }),
@@ -310,7 +321,6 @@ async function updateUserStatus(req: Request, supabaseAdmin: any, currentUserId:
       );
     }
 
-    // Get target user to check permissions
     const { data: targetUser, error: fetchError } = await supabaseAdmin
       .from('user_profiles')
       .select('role')
@@ -324,7 +334,6 @@ async function updateUserStatus(req: Request, supabaseAdmin: any, currentUserId:
       );
     }
 
-    // Only super_admin can manage other super_admins
     if (targetUser.role === 'super_admin' && currentUserRole !== 'super_admin') {
       return new Response(
         JSON.stringify({ error: 'Only super admins can manage super admin users' }),
@@ -332,7 +341,6 @@ async function updateUserStatus(req: Request, supabaseAdmin: any, currentUserId:
       );
     }
 
-    // Update user status
     const { data: profile, error: updateError } = await supabaseAdmin
       .from('user_profiles')
       .update({
@@ -382,7 +390,6 @@ async function updateUserPassword(req: Request, supabaseAdmin: any, currentUserI
       );
     }
 
-    // Get target user to check permissions
     const { data: targetUser, error: fetchError } = await supabaseAdmin
       .from('user_profiles')
       .select('role')
@@ -396,7 +403,6 @@ async function updateUserPassword(req: Request, supabaseAdmin: any, currentUserI
       );
     }
 
-    // Only super_admin can change passwords of other super_admins
     if (targetUser.role === 'super_admin' && currentUserRole !== 'super_admin' && userId !== currentUserId) {
       return new Response(
         JSON.stringify({ error: 'Only super admins can change super admin passwords' }),
@@ -404,7 +410,6 @@ async function updateUserPassword(req: Request, supabaseAdmin: any, currentUserI
       );
     }
 
-    // Update password
     const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password: password
     });
@@ -441,7 +446,6 @@ async function deleteUser(req: Request, supabaseAdmin: any, currentUserId: strin
       );
     }
 
-    // Prevent users from deleting themselves
     if (userId === currentUserId) {
       return new Response(
         JSON.stringify({ error: 'Cannot delete yourself' }),
@@ -449,7 +453,6 @@ async function deleteUser(req: Request, supabaseAdmin: any, currentUserId: strin
       );
     }
 
-    // Get target user to check permissions
     const { data: targetUser, error: fetchError } = await supabaseAdmin
       .from('user_profiles')
       .select('role')
@@ -463,7 +466,6 @@ async function deleteUser(req: Request, supabaseAdmin: any, currentUserId: strin
       );
     }
 
-    // Only super_admin can delete other super_admins
     if (targetUser.role === 'super_admin' && currentUserRole !== 'super_admin') {
       return new Response(
         JSON.stringify({ error: 'Only super admins can delete super admin users' }),
@@ -471,7 +473,6 @@ async function deleteUser(req: Request, supabaseAdmin: any, currentUserId: strin
       );
     }
 
-    // Delete user profile first
     const { error: profileError } = await supabaseAdmin
       .from('user_profiles')
       .delete()
@@ -484,12 +485,10 @@ async function deleteUser(req: Request, supabaseAdmin: any, currentUserId: strin
       );
     }
 
-    // Delete user from auth
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
     if (authError) {
       console.error('Error deleting auth user:', authError);
-      // Profile is already deleted, so we'll consider this a partial success
     }
 
     return new Response(
@@ -517,7 +516,6 @@ async function syncUserMetadata(req: Request, supabaseAdmin: any, currentUserId:
       );
     }
 
-    // Verify the role exists in the database
     const { data: userProfile, error: fetchError } = await supabaseAdmin
       .from('user_profiles')
       .select('role, full_name')
@@ -531,11 +529,10 @@ async function syncUserMetadata(req: Request, supabaseAdmin: any, currentUserId:
       );
     }
 
-    // Check if user profile exists
     if (!userProfile) {
       console.log(`⚠️ User profile not found for userId: ${userId}, skipping sync`);
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           message: 'User profile not found, skipping sync',
           skipped: true,
           userId: userId
@@ -544,7 +541,6 @@ async function syncUserMetadata(req: Request, supabaseAdmin: any, currentUserId:
       );
     }
 
-    // Only super_admin can sync super_admin roles
     if ((userProfile.role === 'super_admin' || role === 'super_admin') && currentUserRole !== 'super_admin') {
       return new Response(
         JSON.stringify({ error: 'Only super admins can manage super admin metadata' }),
@@ -552,10 +548,9 @@ async function syncUserMetadata(req: Request, supabaseAdmin: any, currentUserId:
       );
     }
 
-    // Update user metadata in auth to match database role
     const { error: metadataError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       user_metadata: {
-        role: userProfile.role, // Use the role from database as source of truth
+        role: userProfile.role,
         full_name: userProfile.full_name
       }
     });
@@ -568,9 +563,9 @@ async function syncUserMetadata(req: Request, supabaseAdmin: any, currentUserId:
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         message: 'User metadata synchronized successfully',
-        syncedRole: userProfile.role 
+        syncedRole: userProfile.role
       }),
       { status: 200, headers: corsHeaders }
     );
@@ -586,19 +581,17 @@ async function syncUserMetadata(req: Request, supabaseAdmin: any, currentUserId:
 
 async function fixMissingProfiles(req: Request, supabaseAdmin: any, currentUserId: string, currentUserRole: string) {
   try {
-    // Only super_admin can fix missing profiles
-    if (currentUserRole !== 'super_admin') {
+    if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin') {
       return new Response(
-        JSON.stringify({ error: 'Only super admins can fix missing profiles' }),
+        JSON.stringify({ error: 'Only admins and super admins can fix missing profiles' }),
         { status: 403, headers: corsHeaders }
       );
     }
 
     console.log('🔧 Starting missing profiles fix...');
 
-    // Get all users from auth.users
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-    
+
     if (authError) {
       return new Response(
         JSON.stringify({ error: `Failed to fetch auth users: ${authError.message}` }),
@@ -606,7 +599,6 @@ async function fixMissingProfiles(req: Request, supabaseAdmin: any, currentUserI
       );
     }
 
-    // Get all existing profiles
     const { data: existingProfiles, error: profilesError } = await supabaseAdmin
       .from('user_profiles')
       .select('id, email');
@@ -625,19 +617,16 @@ async function fixMissingProfiles(req: Request, supabaseAdmin: any, currentUserI
 
     console.log(`🔍 Found ${authUsers.users?.length || 0} auth users and ${existingProfiles?.length || 0} existing profiles`);
 
-    // Find users without profiles and create them
     for (const authUser of authUsers.users || []) {
       try {
         if (!existingProfileIds.has(authUser.id)) {
           console.log(`📝 Creating missing profile for user: ${authUser.email}`);
-          
-          // Extract data from user metadata or use defaults
-          const fullName = authUser.user_metadata?.full_name || 
-                          authUser.email?.split('@')[0] || 
+
+          const fullName = authUser.user_metadata?.full_name ||
+                          authUser.email?.split('@')[0] ||
                           'Usuario';
           const role = authUser.user_metadata?.role || 'employee';
 
-          // Create the missing profile
           const { data: newProfile, error: createError } = await supabaseAdmin
             .from('user_profiles')
             .insert({
@@ -660,7 +649,6 @@ async function fixMissingProfiles(req: Request, supabaseAdmin: any, currentUserI
           }
         }
 
-        // Sync metadata for all users (existing logic)
         const { data: userProfile } = await supabaseAdmin
           .from('user_profiles')
           .select('role, full_name')
@@ -668,7 +656,6 @@ async function fixMissingProfiles(req: Request, supabaseAdmin: any, currentUserI
           .maybeSingle();
 
         if (userProfile) {
-          // Update user metadata to match database role
           const { error: metadataError } = await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
             user_metadata: {
               role: userProfile.role,
@@ -699,7 +686,7 @@ async function fixMissingProfiles(req: Request, supabaseAdmin: any, currentUserI
     console.log(`❌ Errors: ${errors.length}`);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         message: 'Missing profiles fix completed successfully',
         createdProfiles: missingProfiles.length,
         syncedUsers: syncedUsers.length,
