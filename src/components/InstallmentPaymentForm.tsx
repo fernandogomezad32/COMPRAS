@@ -28,13 +28,20 @@ export function InstallmentPaymentForm({ installmentSale, onSubmit, onCancel }: 
 
     try {
       const amount = parseFloat(formData.amount);
-      
+
       if (amount <= 0) {
         throw new Error('El monto debe ser mayor a 0');
       }
-      
+
       if (amount > installmentSale.remaining_amount) {
         throw new Error('El monto no puede ser mayor al saldo pendiente');
+      }
+
+      const newPaidAmount = installmentSale.paid_amount + amount;
+      const percentagePaid = (newPaidAmount / installmentSale.total_amount) * 100;
+
+      if (percentagePaid > 100) {
+        throw new Error(`El pago excedería el 100% del total. Solo puede pagar hasta $${installmentSale.remaining_amount.toLocaleString()}`);
       }
 
       await installmentService.addPayment(installmentSale.id, {

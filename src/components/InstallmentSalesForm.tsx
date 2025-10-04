@@ -30,7 +30,9 @@ export function InstallmentSalesForm({ onSubmit, onCancel }: InstallmentSalesFor
     installment_type: 'monthly' as 'daily' | 'weekly' | 'monthly',
     installment_count: 12,
     start_date: new Date().toISOString().split('T')[0],
-    notes: ''
+    notes: '',
+    pay_first_installment: false,
+    first_payment_method: 'cash' as 'cash' | 'card' | 'transfer' | 'nequi' | 'daviplata' | 'bancolombia'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +118,9 @@ export function InstallmentSalesForm({ onSubmit, onCancel }: InstallmentSalesFor
         installment_type: formData.installment_type,
         installment_count: formData.installment_count,
         start_date: formData.start_date,
-        notes: formData.notes
+        notes: formData.notes,
+        pay_first_installment: formData.pay_first_installment,
+        first_payment_method: formData.first_payment_method
       });
 
       onSubmit();
@@ -128,10 +132,12 @@ export function InstallmentSalesForm({ onSubmit, onCancel }: InstallmentSalesFor
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: name === 'installment_count' ? parseInt(value) || 1 : value 
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : (name === 'installment_count' ? parseInt(value) || 1 : value)
     }));
   };
 
@@ -342,6 +348,54 @@ export function InstallmentSalesForm({ onSubmit, onCancel }: InstallmentSalesFor
                   />
                 </div>
 
+                {/* Pagar primera cuota */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      id="pay_first_installment"
+                      name="pay_first_installment"
+                      checked={formData.pay_first_installment}
+                      onChange={handleChange}
+                      className="mt-1 h-5 w-5 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <div className="flex-1">
+                      <label htmlFor="pay_first_installment" className="block text-sm font-medium text-green-900 cursor-pointer">
+                        Pagar primera cuota ahora
+                      </label>
+                      <p className="text-xs text-green-700 mt-1">
+                        El cliente pagará la primera cuota al momento de crear la venta
+                      </p>
+                    </div>
+                  </div>
+
+                  {formData.pay_first_installment && (
+                    <div className="mt-4">
+                      <label htmlFor="first_payment_method" className="block text-sm font-medium text-gray-700 mb-2">
+                        Método de Pago Primera Cuota *
+                      </label>
+                      <div className="relative">
+                        <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <select
+                          id="first_payment_method"
+                          name="first_payment_method"
+                          value={formData.first_payment_method}
+                          onChange={handleChange}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required={formData.pay_first_installment}
+                        >
+                          <option value="cash">💵 Efectivo</option>
+                          <option value="card">💳 Tarjeta</option>
+                          <option value="nequi">📱 NEQUI</option>
+                          <option value="daviplata">📱 DAVIPLATA</option>
+                          <option value="bancolombia">📱 BANCOLOMBIA</option>
+                          <option value="transfer">🏦 Transferencia</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Notas */}
                 <div>
                   <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
@@ -389,6 +443,22 @@ export function InstallmentSalesForm({ onSubmit, onCancel }: InstallmentSalesFor
                           </span>
                         </div>
                       </div>
+                      {formData.pay_first_installment && (
+                        <div className="border-t border-blue-200 pt-2">
+                          <div className="flex justify-between">
+                            <span className="text-green-700 font-medium">Primera cuota (hoy):</span>
+                            <span className="font-bold text-green-600 text-lg">
+                              ${installmentAmount.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <span className="text-blue-700 text-xs">Saldo pendiente:</span>
+                            <span className="font-medium text-blue-900 text-xs">
+                              ${(total - installmentAmount).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

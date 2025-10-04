@@ -106,6 +106,8 @@ export const installmentService = {
     installment_count: number;
     start_date: string;
     notes?: string;
+    pay_first_installment?: boolean;
+    first_payment_method?: string;
   }): Promise<InstallmentSale> {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -122,6 +124,12 @@ export const installmentService = {
       (sum, item) => sum + (item.product.price * item.quantity), 0
     );
     const installment_amount = total_amount / installmentData.installment_count;
+
+    // Determinar valores iniciales basados en si se paga la primera cuota
+    const pay_first = installmentData.pay_first_installment || false;
+    const paid_amount_initial = pay_first ? installment_amount : 0;
+    const remaining_amount_initial = total_amount - paid_amount_initial;
+    const paid_installments_initial = pay_first ? 1 : 0;
 
     // Calcular próxima fecha de pago
     const startDate = new Date(installmentData.start_date);
@@ -151,15 +159,15 @@ export const installmentService = {
       .insert({
         customer_id: installmentData.customer_id,
         total_amount,
-        paid_amount: 0,
-        remaining_amount: total_amount,
+        paid_amount: paid_amount_initial,
+        remaining_amount: remaining_amount_initial,
         installment_type: installmentData.installment_type,
         installment_amount,
         installment_count: installmentData.installment_count,
-        paid_installments: 0,
+        paid_installments: paid_installments_initial,
         start_date: installmentData.start_date,
         next_payment_date: nextPaymentDate.toISOString().split('T')[0],
-        status: 'active',
+        status: remaining_amount_initial <= 0 ? 'completed' : 'active',
         notes: installmentData.notes || '',
         created_by: user.id
       })
@@ -183,6 +191,23 @@ export const installmentService = {
 
     if (itemsError) throw itemsError;
 
+    // Si se paga la primera cuota, registrar el pago
+    if (pay_first && installmentData.first_payment_method) {
+      const { error: paymentError } = await supabase
+        .from('installment_payments')
+        .insert({
+          installment_sale_id: installmentSale.id,
+          payment_number: 1,
+          amount: installment_amount,
+          payment_date: installmentData.start_date,
+          payment_method: installmentData.first_payment_method,
+          notes: 'Primera cuota pagada al crear la venta',
+          created_by: user.id
+        });
+
+      if (paymentError) throw paymentError;
+    }
+
     // Retornar la venta completa
     return await this.getById(installmentSale.id) as InstallmentSale;
   },
@@ -194,8 +219,30 @@ export const installmentService = {
     notes?: string;
   }): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) throw new Error('Usuario no autenticado');
+
+    // Obtener la venta por abonos actual primero para validar
+    const { data: installmentSale, error: fetchError } = await supabase
+      .from('installment_sales')
+      .select('*')
+      .eq('id', installmentSaleId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Validar que el pago no exceda el saldo pendiente
+    if (paymentData.amount > installmentSale.remaining_amount) {
+      throw new Error(`El monto no puede ser mayor al saldo pendiente de $${installmentSale.remaining_amount.toLocaleString()}`);
+    }
+
+    // Validar que no se exceda el 100%
+    const newPaidAmount = installmentSale.paid_amount + paymentData.amount;
+    const percentagePaid = (newPaidAmount / installmentSale.total_amount) * 100;
+
+    if (percentagePaid > 100) {
+      throw new Error(`El pago excedería el 100% del total. Solo puede pagar hasta $${installmentSale.remaining_amount.toLocaleString()}`);
+    }
 
     // Obtener el número del próximo pago
     const { count } = await supabase
@@ -220,17 +267,7 @@ export const installmentService = {
 
     if (paymentError) throw paymentError;
 
-    // Obtener la venta por abonos actual
-    const { data: installmentSale, error: fetchError } = await supabase
-      .from('installment_sales')
-      .select('*')
-      .eq('id', installmentSaleId)
-      .single();
-
-    if (fetchError) throw fetchError;
-
-    // Calcular nuevos valores
-    const newPaidAmount = installmentSale.paid_amount + paymentData.amount;
+    // Calcular nuevos valores (usar la variable ya calculada)
     const newRemainingAmount = installmentSale.total_amount - newPaidAmount;
     const newPaidInstallments = installmentSale.paid_installments + 1;
 
