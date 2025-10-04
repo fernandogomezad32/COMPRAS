@@ -4,6 +4,7 @@ import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
 import { saleService } from '../services/saleService';
 import { userService } from '../services/userService';
+import type { Product } from '../types';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -16,6 +17,7 @@ export default function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>('employee');
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -46,7 +48,7 @@ export default function Dashboard() {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const sales = await saleService.getAll();
-      
+
       const monthlyRevenue = sales
         .filter(sale => new Date(sale.created_at) >= startOfMonth)
         .reduce((sum, sale) => sum + sale.total, 0);
@@ -59,6 +61,9 @@ export default function Dashboard() {
         todayRevenue: salesStats.todayRevenue,
         monthlyRevenue
       });
+
+      const activeProducts = products.filter(p => p.status === 'active' && p.stock_quantity > 0);
+      setAvailableProducts(activeProducts.slice(0, 6));
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -213,6 +218,67 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Available Products Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-900">Productos Disponibles</h3>
+              <Package className="w-6 h-6 text-blue-600" />
+            </div>
+
+            {availableProducts.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No hay productos disponibles</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {availableProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-semibold text-gray-900 text-sm line-clamp-2">
+                        {product.name}
+                      </h4>
+                      {product.stock_quantity <= product.min_stock && (
+                        <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 ml-1" />
+                      )}
+                    </div>
+
+                    {product.category && (
+                      <p className="text-xs text-gray-500 mb-2">{product.category.name}</p>
+                    )}
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">Precio:</span>
+                        <span className="text-sm font-semibold text-green-600">
+                          ${product.price.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">Stock:</span>
+                        <span className={`text-sm font-medium ${
+                          product.stock_quantity <= product.min_stock
+                            ? 'text-orange-600'
+                            : 'text-gray-700'
+                        }`}>
+                          {product.stock_quantity}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
