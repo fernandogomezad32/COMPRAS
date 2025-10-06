@@ -182,20 +182,42 @@ export function Reports() {
 
   const renderSalesReport = () => {
     const filteredSales = filterDataByDate(salesData);
-    
+
+    // Filtrar ventas por abonos completadas
+    const filteredInstallmentSales = filterDataByDate(
+      installmentSalesData.filter(sale => sale.status === 'completed'),
+      'updated_at'
+    );
+
     // Para empleados, filtrar solo sus propias ventas
-    const userFilteredSales = userRole === 'employee' 
+    const userFilteredSales = userRole === 'employee'
       ? filteredSales.filter(sale => sale.user_id === user?.id)
       : filteredSales;
-    
-    const totalRevenue = userFilteredSales.reduce((sum, sale) => sum + sale.total, 0);
-    const totalSales = userFilteredSales.length;
+
+    const userFilteredInstallmentSales = userRole === 'employee'
+      ? filteredInstallmentSales.filter(sale => sale.created_by === user?.id)
+      : filteredInstallmentSales;
+
+    // Calcular totales incluyendo ventas por abonos completadas
+    const regularSalesRevenue = userFilteredSales.reduce((sum, sale) => sum + sale.total, 0);
+    const installmentSalesRevenue = userFilteredInstallmentSales.reduce((sum, sale) => sum + sale.total_amount, 0);
+    const totalRevenue = regularSalesRevenue + installmentSalesRevenue;
+    const totalSales = userFilteredSales.length + userFilteredInstallmentSales.length;
     const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
 
     const salesByPaymentMethod = userFilteredSales.reduce((acc, sale) => {
       acc[sale.payment_method] = (acc[sale.payment_method] || 0) + sale.total;
       return acc;
     }, {} as Record<string, number>);
+
+    // Agregar métodos de pago de ventas por abonos completadas
+    userFilteredInstallmentSales.forEach(installmentSale => {
+      if (installmentSale.installment_payments) {
+        installmentSale.installment_payments.forEach(payment => {
+          salesByPaymentMethod[payment.payment_method] = (salesByPaymentMethod[payment.payment_method] || 0) + payment.amount;
+        });
+      }
+    });
 
     return (
       <div className="space-y-6">
@@ -254,7 +276,27 @@ export function Reports() {
         {canExportData && (
           <div className="flex justify-end">
             <button
-              onClick={() => exportToExcel(userFilteredSales, userRole === 'employee' ? 'mis_ventas' : 'reporte_ventas')}
+              onClick={() => {
+                const allSalesData = [
+                  ...userFilteredSales.map(sale => ({
+                    tipo: 'Venta Regular',
+                    cliente: sale.customer?.name || sale.customer_name,
+                    total: sale.total,
+                    metodo_pago: sale.payment_method,
+                    fecha: format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm', { locale: es }),
+                    estado: sale.status
+                  })),
+                  ...userFilteredInstallmentSales.map(sale => ({
+                    tipo: 'Venta por Abonos (Completada)',
+                    cliente: sale.customer?.name || '',
+                    total: sale.total_amount,
+                    metodo_pago: 'Múltiples',
+                    fecha: format(new Date(sale.updated_at), 'dd/MM/yyyy', { locale: es }),
+                    estado: 'completed'
+                  }))
+                ];
+                exportToExcel(allSalesData, userRole === 'employee' ? 'mis_ventas' : 'reporte_ventas');
+              }}
               className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
             >
               <Download className="h-5 w-5" />
@@ -269,11 +311,15 @@ export function Reports() {
             <h3 className="text-lg font-semibold text-gray-900">
               {userRole === 'employee' ? 'Mis Ventas Detalladas' : 'Ventas Detalladas'}
             </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Incluye ventas regulares y ventas por abonos completadas
+            </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Método Pago</th>
@@ -283,7 +329,12 @@ export function Reports() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {userFilteredSales.map((saleItem) => (
-                  <tr key={saleItem.id} className="hover:bg-gray-50">
+                  <tr key={`sale-${saleItem.id}`} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Regular
+                      </span>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
@@ -300,7 +351,7 @@ export function Reports() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                         {saleItem.payment_method}
                       </span>
                     </td>
@@ -314,6 +365,46 @@ export function Reports() {
                         'bg-red-100 text-red-800'
                       }`}>
                         {saleItem.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {userFilteredInstallmentSales.map((installmentSale) => (
+                  <tr key={`installment-${installmentSale.id}`} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Abonos
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {installmentSale.customer?.name || 'Cliente eliminado'}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {installmentSale.customer?.email || installmentSale.customer?.phone || ''}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        ${installmentSale.total_amount.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {installmentSale.paid_installments} pagos
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        Múltiples
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {format(new Date(installmentSale.updated_at), 'dd/MM/yyyy', { locale: es })}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Completada
                       </span>
                     </td>
                   </tr>
