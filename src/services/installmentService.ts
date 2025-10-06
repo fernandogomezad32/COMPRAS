@@ -272,18 +272,18 @@ export const installmentService = {
     const newPaidInstallments = installmentSale.paid_installments + 1;
 
     // Calcular próxima fecha de pago
-    let nextPaymentDate: string;
+    let nextPaymentDate: string | null;
     let newStatus = installmentSale.status;
 
     if (newRemainingAmount <= 0 || newPaidInstallments >= installmentSale.installment_count) {
-      // Venta completada
-      nextPaymentDate = paymentData.payment_date; // Usar la fecha del último pago
+      // Venta completada - no hay próxima fecha de pago
+      nextPaymentDate = null;
       newStatus = 'completed';
     } else {
       // Calcular siguiente fecha de pago
       const currentPaymentDate = new Date(paymentData.payment_date);
       const nextDate = new Date(currentPaymentDate);
-      
+
       switch (installmentSale.installment_type) {
         case 'daily':
           nextDate.setDate(nextDate.getDate() + 1);
@@ -295,7 +295,7 @@ export const installmentService = {
           nextDate.setMonth(nextDate.getMonth() + 1);
           break;
       }
-      
+
       nextPaymentDate = nextDate.toISOString().split('T')[0];
     }
 

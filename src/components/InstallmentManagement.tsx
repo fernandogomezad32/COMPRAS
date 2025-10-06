@@ -262,8 +262,8 @@ export function InstallmentManagement() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredSales.map((sale) => {
                 const progressPercentage = getProgressPercentage(sale);
-                const isOverdue = new Date(sale.next_payment_date) < new Date() && sale.status === 'active';
-                
+                const isOverdue = sale.next_payment_date ? new Date(sale.next_payment_date) < new Date() && sale.status === 'active' : false;
+
                 return (
                   <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -331,15 +331,23 @@ export function InstallmentManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm">
-                        <div className={`font-medium ${isOverdue ? 'text-red-600' : 'text-gray-900'}`}>
-                          {format(new Date(sale.next_payment_date), 'dd/MM/yyyy', { locale: es })}
-                        </div>
-                        <div className="text-gray-500">
-                          ${sale.installment_amount.toLocaleString()}
-                        </div>
-                        {isOverdue && (
-                          <div className="text-red-500 text-xs font-medium">
-                            ⚠️ Vencido
+                        {sale.next_payment_date ? (
+                          <>
+                            <div className={`font-medium ${isOverdue ? 'text-red-600' : 'text-gray-900'}`}>
+                              {format(new Date(sale.next_payment_date), 'dd/MM/yyyy', { locale: es })}
+                            </div>
+                            <div className="text-gray-500">
+                              ${sale.installment_amount.toLocaleString()}
+                            </div>
+                            {isOverdue && (
+                              <div className="text-red-500 text-xs font-medium">
+                                ⚠️ Vencido
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-gray-500 font-medium">
+                            Completado
                           </div>
                         )}
                       </div>

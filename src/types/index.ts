@@ -179,7 +179,7 @@ export interface InstallmentSale {
   installment_count: number;
   paid_installments: number;
   start_date: string;
-  next_payment_date: string;
+  next_payment_date: string | null;
   status: 'active' | 'completed' | 'cancelled' | 'overdue';
   notes: string;
   created_by: string | null;
