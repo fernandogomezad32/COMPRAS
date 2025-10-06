@@ -1,21 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  FileText, 
-  Download, 
-  Calendar, 
-  DollarSign,
-  Package,
-  Users,
-  ShoppingCart,
-  TrendingUp,
-  Filter,
-  Search,
-  Plus,
-  Edit2,
-  Trash2,
-  Eye
-} from 'lucide-react';
+import { BarChart3, FileText, Download, Calendar, DollarSign, Package, Users, ShoppingCart, TrendingUp, Filter, Search, Plus, CreditCard as Edit2, Trash2, Eye } from 'lucide-react';
 import { saleService } from '../services/saleService';
 import { productService } from '../services/productService';
 import { customerService } from '../services/customerService';
