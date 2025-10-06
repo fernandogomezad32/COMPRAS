@@ -1,18 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Calendar, 
-  DollarSign, 
-  Clock, 
-  CheckCircle, 
-  AlertTriangle,
-  XCircle,
-  User,
-  Edit2,
-  Trash2,
-  CreditCard,
-  Package,
-  TrendingUp
-} from 'lucide-react';
+import { Calendar, DollarSign, Clock, CheckCircle, AlertTriangle, XCircle, User, CreditCard as Edit2, Trash2, CreditCard, Package, TrendingUp } from 'lucide-react';
 import { installmentService } from '../services/installmentService';
 import type { InstallmentSale } from '../types';
 import { format } from 'date-fns';
