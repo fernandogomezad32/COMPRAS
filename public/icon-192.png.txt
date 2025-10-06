@@ -1,0 +1,11 @@
+Este archivo debe ser un icono PNG de 192x192 píxeles.
+Para generar los iconos, puedes usar:
+1. https://favicon.io/ - Generador de iconos gratuito
+2. https://realfavicongenerator.net/ - Generador completo de favicons
+3. O crear tus propios iconos en cualquier editor de imágenes
+
+Los iconos deben tener:
+- icon-192.png: 192x192 píxeles
+- icon-512.png: 512x512 píxeles
+- Fondo sólido (preferiblemente azul #2563eb)
+- Logo o símbolo simple que represente el POS

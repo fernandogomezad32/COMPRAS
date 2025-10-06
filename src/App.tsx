@@ -14,6 +14,7 @@ import { ReturnsManagement } from './components/ReturnsManagement';
 import { InvoiceSearch } from './components/InvoiceSearch';
 import { InstallmentManagement } from './components/InstallmentManagement';
 import { UserManagement } from './components/UserManagement';
+import InstallPrompt from './components/InstallPrompt';
 
 function App() {
   const { user, loading } = useAuth();
@@ -102,9 +103,12 @@ function App() {
   };
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-      {renderContent()}
-    </Layout>
+    <>
+      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+        {renderContent()}
+      </Layout>
+      <InstallPrompt />
+    </>
   );
 }
 
